@@ -1,6 +1,13 @@
 import { type User, type InsertUser, type Car, type InsertCar } from "@shared/schema";
 import { randomUUID } from "crypto";
 
+function generateSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
@@ -8,6 +15,7 @@ export interface IStorage {
   
   getAllCars(): Promise<Car[]>;
   getCar(id: string): Promise<Car | undefined>;
+  getCarBySlug(slug: string): Promise<Car | undefined>;
   createCar(car: InsertCar): Promise<Car>;
   updateCar(id: string, car: InsertCar): Promise<Car | undefined>;
   deleteCar(id: string): Promise<boolean>;
@@ -137,7 +145,8 @@ export class MemStorage implements IStorage {
 
     sampleCars.forEach((carData) => {
       const id = randomUUID();
-      const car: Car = { ...carData, id };
+      const slug = generateSlug(carData.name);
+      const car: Car = { ...carData, id, slug };
       this.cars.set(id, car);
     });
   }
@@ -167,9 +176,16 @@ export class MemStorage implements IStorage {
     return this.cars.get(id);
   }
 
+  async getCarBySlug(slug: string): Promise<Car | undefined> {
+    return Array.from(this.cars.values()).find(
+      (car) => car.slug === slug,
+    );
+  }
+
   async createCar(insertCar: InsertCar): Promise<Car> {
     const id = randomUUID();
-    const car: Car = { ...insertCar, id };
+    const slug = generateSlug(insertCar.name);
+    const car: Car = { ...insertCar, id, slug };
     this.cars.set(id, car);
     return car;
   }
@@ -179,7 +195,8 @@ export class MemStorage implements IStorage {
     if (!existing) {
       return undefined;
     }
-    const updatedCar: Car = { ...insertCar, id };
+    const slug = generateSlug(insertCar.name);
+    const updatedCar: Car = { ...insertCar, id, slug };
     this.cars.set(id, updatedCar);
     return updatedCar;
   }

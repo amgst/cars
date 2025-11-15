@@ -53,7 +53,7 @@ function PublicRouter() {
         <Switch>
           <Route path="/" component={Home} />
           <Route path="/cars" component={Cars} />
-          <Route path="/cars/:id" component={CarDetail} />
+          <Route path="/cars/:slug" component={CarDetail} />
           <Route component={NotFound} />
         </Switch>
       </div>

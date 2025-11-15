@@ -14,6 +14,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/cars/by-slug/:slug", async (req, res) => {
+    try {
+      const car = await storage.getCarBySlug(req.params.slug);
+      if (!car) {
+        return res.status(404).json({ error: "Car not found" });
+      }
+      res.json(car);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch car" });
+    }
+  });
+
   app.get("/api/cars/:id", async (req, res) => {
     try {
       const car = await storage.getCar(req.params.id);

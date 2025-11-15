@@ -5,6 +5,7 @@ import { z } from "zod";
 
 export const cars = pgTable("cars", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  slug: text("slug").notNull().unique(),
   name: text("name").notNull(),
   category: text("category").notNull(),
   description: text("description").notNull(),
@@ -25,6 +26,7 @@ export const cars = pgTable("cars", {
 
 export const insertCarSchema = createInsertSchema(cars).omit({
   id: true,
+  slug: true,
 });
 
 export type InsertCar = z.infer<typeof insertCarSchema>;

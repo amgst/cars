@@ -131,7 +131,7 @@ export default function Cars() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {filteredCars.map((car) => (
-                <Link key={car.id} href={`/cars/${car.id}`}>
+                <Link key={car.id} href={`/cars/${car.slug}`}>
                   <Card className="overflow-hidden hover-elevate active-elevate-2 cursor-pointer h-full" data-testid={`card-car-${car.id}`}>
                     <div className="aspect-[4/3] overflow-hidden">
                       <img

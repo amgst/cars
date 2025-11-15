@@ -22,11 +22,11 @@ import {
 } from "lucide-react";
 
 export default function CarDetail() {
-  const { id } = useParams();
+  const { slug } = useParams();
   
   const { data: car, isLoading } = useQuery<Car>({
-    queryKey: [`/api/cars/${id}`],
-    enabled: !!id,
+    queryKey: [`/api/cars/by-slug/${slug}`],
+    enabled: !!slug,
   });
 
   if (isLoading) {
