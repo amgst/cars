@@ -66,8 +66,7 @@ function Router() {
     <Switch>
       <Route path="/admin" component={AdminRouter} />
       <Route path="/admin/:rest*" component={AdminRouter} />
-      <Route path="/" component={PublicRouter} />
-      <Route path="/:rest*" component={PublicRouter} />
+      <Route component={PublicRouter} />
     </Switch>
   );
 }
