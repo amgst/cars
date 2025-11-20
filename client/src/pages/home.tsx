@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import heroImage from "@assets/generated_images/Hero_banner_luxury_car_0ff28a2c.png";
 import { getAllCarsFirebase } from "@/lib/carsFirebase";
+import { getOptimizedImageUrl, getThumbnailUrl } from "@/lib/imageUtils";
 import { Users, Car as CarIcon, MapPin, Shield, ArrowRight, Fuel, Settings, Users as SeatsIcon, Search } from "lucide-react";
 
 export default function Home() {
@@ -23,7 +24,7 @@ export default function Home() {
       <section className="relative h-screen min-h-[600px] flex items-center justify-center">
         <div
           className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${heroImage})` }}
+          style={{ backgroundImage: `url(${getOptimizedImageUrl(heroImage, { width: 2400 })})` }}
         >
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/70" />
         </div>
@@ -121,7 +122,7 @@ export default function Home() {
                   <Card className="overflow-hidden hover-elevate active-elevate-2 cursor-pointer h-full" data-testid={`card-car-${car.id}`}>
                     <div className="aspect-[4/3] overflow-hidden">
                       <img
-                        src={car.image}
+                        src={getThumbnailUrl(car.image, 720)}
                         alt={car.name}
                         className="w-full h-full object-cover"
                       />

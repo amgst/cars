@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { getCarBySlugFirebase } from "@/lib/carsFirebase";
 import { BookingForm } from "@/components/booking-form";
+import { getOptimizedImageUrl, getThumbnailUrl } from "@/lib/imageUtils";
 import { getPricingSettings } from "@/lib/pricingSettingsFirebase";
 
 export default function CarDetail() {
@@ -137,7 +138,7 @@ export default function CarDetail() {
       <section className="relative h-[60vh] min-h-[420px] w-full text-white">
         <div
           className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${car.image})` }}
+          style={{ backgroundImage: `url(${getOptimizedImageUrl(car.image, { width: 2400 })})` }}
           data-testid="img-car-main"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-black/80" />
@@ -315,8 +316,10 @@ export default function CarDetail() {
               <div className="grid grid-cols-1 gap-4">
                 {/* Large main image - updates when thumbnail is clicked */}
                 <div className="w-full aspect-[16/9] rounded-xl overflow-hidden bg-muted">
-                  <img
-                    src={uniqueImages[selectedImageIndex] || uniqueImages[0]}
+            <img
+              src={getOptimizedImageUrl(uniqueImages[selectedImageIndex] || uniqueImages[0], {
+                width: 1600,
+              })}
                     alt={`${car.name} - Image ${selectedImageIndex + 1}`}
                     className="w-full h-full object-cover transition-opacity duration-300"
                     onError={(e) => {
@@ -340,8 +343,8 @@ export default function CarDetail() {
                           }`}
                           onClick={() => setSelectedImageIndex(index)}
                         >
-                          <img
-                            src={image}
+                    <img
+                      src={getThumbnailUrl(image, 320)}
                             alt={`${car.name} thumbnail ${index + 1}`}
                             className="w-full h-full object-cover"
                             onError={(e) => {
@@ -366,8 +369,8 @@ export default function CarDetail() {
                                 }`}
                                 onClick={() => setSelectedImageIndex(index)}
                               >
-                                <img
-                                  src={image}
+                          <img
+                            src={getThumbnailUrl(image, 320)}
                                   alt={`${car.name} thumbnail ${index + 1}`}
                                   className="w-full h-full object-cover"
                                   onError={(e) => {

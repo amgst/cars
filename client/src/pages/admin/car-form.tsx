@@ -25,7 +25,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Save, Plus, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, Save, Plus, X, ArrowUp, ArrowDown, Star, ImagePlus } from "lucide-react";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect, useState } from "react";
@@ -36,7 +37,6 @@ import {
 } from "@/lib/carsFirebase";
 import {
   uploadImage,
-  uploadImages,
   isImageFile,
   isValidFileSize,
   createImagePreview,
@@ -47,19 +47,168 @@ const categories = ["Sedan", "SUV", "Sports", "Luxury", "Electric", "Compact"];
 const transmissions = ["Automatic", "Manual"];
 const fuelTypes = ["Petrol", "Diesel", "Electric", "Hybrid"];
 
+type GalleryItem = {
+  id: string;
+  url: string;
+  file?: File;
+  previewUrl?: string;
+  isCover: boolean;
+};
+
 export default function CarForm() {
   const { id } = useParams();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const isEdit = !!id;
   
-  // State for file uploads and previews
-  const [mainImageFile, setMainImageFile] = useState<File | null>(null);
-  const [mainImagePreview, setMainImagePreview] = useState<string | null>(null);
-  const [additionalImageFiles, setAdditionalImageFiles] = useState<File[]>([]);
-  const [additionalImagePreviews, setAdditionalImagePreviews] = useState<string[]>([]);
+  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
+  const [imageUrlInput, setImageUrlInput] = useState("");
   const [isUploading, setIsUploading] = useState(false);
-  const [originalMainImageUrl, setOriginalMainImageUrl] = useState<string | null>(null);
+
+  const ensureCoverExists = (items: GalleryItem[]): GalleryItem[] => {
+    if (items.length === 0) {
+      return [];
+    }
+    if (items.some((item) => item.isCover)) {
+      return items;
+    }
+    return items.map((item, index) => ({
+      ...item,
+      isCover: index === 0,
+    }));
+  };
+
+  const handleGalleryFilesChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    if (files.length === 0) return;
+
+    for (const file of files) {
+      if (!isImageFile(file)) {
+        toast({
+          title: "Invalid File",
+          description: "All files must be image files",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (!isValidFileSize(file)) {
+        toast({
+          title: "File Too Large",
+          description: "All images must be less than 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    const hasCover = galleryItems.some((item) => item.isCover);
+    const newItems: GalleryItem[] = files.map((file, index) => {
+      const previewUrl = createImagePreview(file);
+      return {
+        id: crypto.randomUUID(),
+        url: previewUrl,
+        file,
+        previewUrl,
+        isCover: !hasCover && index === 0,
+      };
+    });
+
+    setGalleryItems((prev) => [...prev, ...newItems]);
+    // Reset file input so the same file can be selected again
+    event.target.value = "";
+  };
+
+  const handleAddImageUrl = () => {
+    const trimmed = imageUrlInput.trim();
+    if (!trimmed) return;
+    try {
+      new URL(trimmed);
+    } catch {
+      toast({
+        title: "Invalid URL",
+        description: "Please enter a valid image URL",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const hasCover = galleryItems.some((item) => item.isCover);
+    const newItem: GalleryItem = {
+      id: crypto.randomUUID(),
+      url: trimmed,
+      isCover: !hasCover,
+    };
+
+    setGalleryItems((prev) => [...prev, newItem]);
+    setImageUrlInput("");
+  };
+
+  const removeGalleryItem = (id: string) => {
+    setGalleryItems((prev) => {
+      const target = prev.find((item) => item.id === id);
+      if (target?.previewUrl) {
+        revokeImagePreview(target.previewUrl);
+      }
+      const updated = prev.filter((item) => item.id !== id);
+      return ensureCoverExists(updated);
+    });
+  };
+
+  const setCoverImage = (id: string) => {
+    setGalleryItems((prev) =>
+      prev.map((item) => ({
+        ...item,
+        isCover: item.id === id,
+      })),
+    );
+  };
+
+  const moveGalleryItem = (id: string, direction: "up" | "down") => {
+    setGalleryItems((prev) => {
+      const index = prev.findIndex((item) => item.id === id);
+      if (index === -1) return prev;
+      const newIndex = direction === "up" ? index - 1 : index + 1;
+      if (newIndex < 0 || newIndex >= prev.length) return prev;
+      const updated = [...prev];
+      const [removed] = updated.splice(index, 1);
+      updated.splice(newIndex, 0, removed);
+      return updated;
+    });
+  };
+
+  const prepareGalleryForSubmit = async () => {
+    if (galleryItems.length === 0) {
+      throw new Error("Please add at least one image");
+    }
+
+    const uploadedItems: GalleryItem[] = [];
+    for (const item of galleryItems) {
+      if (item.file) {
+        const uploadedUrl = await uploadImage(item.file);
+        if (item.previewUrl) {
+          revokeImagePreview(item.previewUrl);
+        }
+        uploadedItems.push({
+          ...item,
+          url: uploadedUrl,
+          file: undefined,
+          previewUrl: undefined,
+        });
+      } else {
+        uploadedItems.push(item);
+      }
+    }
+
+    const normalized = ensureCoverExists(uploadedItems);
+    setGalleryItems(normalized);
+
+    const cover = normalized.find((item) => item.isCover) || normalized[0];
+    const others = normalized
+      .filter((item) => item.id !== cover.id)
+      .map((item) => item.url);
+
+    return { coverUrl: cover.url, galleryUrls: others };
+  };
 
   const { data: car, isLoading, error } = useQuery<Car>({
     queryKey: ["carById", id],
@@ -90,6 +239,11 @@ export default function CarForm() {
     },
   });
 
+  useEffect(() => {
+    form.register("image");
+    form.register("images");
+  }, [form]);
+
   // Only reset the form when car data is loaded and the form hasn't been modified
   useEffect(() => {
     if (isEdit && car && !form.formState.isDirty) {
@@ -112,10 +266,54 @@ export default function CarForm() {
         hasUSB: car.hasUSB,
         available: car.available,
       });
-      // Store the original image URL to preserve it if no new file is uploaded
-      setOriginalMainImageUrl(car.image);
     }
   }, [car, isEdit, form, form.formState.isDirty]);
+
+  useEffect(() => {
+    if (isEdit && car && galleryItems.length === 0) {
+      const existing: GalleryItem[] = [];
+      if (car.image) {
+        existing.push({
+          id: crypto.randomUUID(),
+          url: car.image,
+          isCover: true,
+        });
+      }
+      (car.images || []).forEach((url) => {
+        if (!url) return;
+        existing.push({
+          id: crypto.randomUUID(),
+          url,
+          isCover: false,
+        });
+      });
+      setGalleryItems(existing);
+    }
+  }, [car, isEdit, galleryItems.length]);
+
+  useEffect(() => {
+    if (galleryItems.length === 0) {
+      form.setValue("image", "", { shouldDirty: false });
+      form.setValue("images", [], { shouldDirty: false });
+      return;
+    }
+    const cover = galleryItems.find((item) => item.isCover) || galleryItems[0];
+    const others = galleryItems
+      .filter((item) => item.id !== cover.id)
+      .map((item) => item.url);
+    form.setValue("image", cover.url, { shouldDirty: false });
+    form.setValue("images", others, { shouldDirty: false });
+  }, [galleryItems, form]);
+
+  useEffect(() => {
+    return () => {
+      galleryItems.forEach((item) => {
+        if (item.previewUrl) {
+          revokeImagePreview(item.previewUrl);
+        }
+      });
+    };
+  }, [galleryItems]);
 
   const createMutation = useMutation({
     mutationFn: (data: InsertCar) => createCarFirebase(data),
@@ -161,83 +359,15 @@ export default function CarForm() {
   });
 
   // Helper to check if a URL is a blob URL (preview URL)
-  const isBlobUrl = (url: string | null | undefined): boolean => {
-    return url ? url.startsWith("blob:") : false;
-  };
-
   const onSubmit = async (data: InsertCar) => {
     setIsUploading(true);
     try {
-      // Upload main image if a new file was selected
-      let mainImageUrl = data.image;
-      
-      // If a new file was selected, upload it
-      if (mainImageFile) {
-        if (!isImageFile(mainImageFile)) {
-          toast({
-            title: "Error",
-            description: "Main image must be a valid image file",
-            variant: "destructive",
-          });
-          setIsUploading(false);
-          return;
-        }
-        if (!isValidFileSize(mainImageFile)) {
-          toast({
-            title: "Error",
-            description: "Main image must be less than 5MB",
-            variant: "destructive",
-          });
-          setIsUploading(false);
-          return;
-        }
-        mainImageUrl = await uploadImage(mainImageFile);
-      } else if (isBlobUrl(data.image)) {
-        // If the form has a blob URL but no file, use the original URL (when editing)
-        mainImageUrl = originalMainImageUrl || data.image;
-      } else if (!data.image && originalMainImageUrl) {
-        // If image field is empty but we have an original URL, keep it
-        mainImageUrl = originalMainImageUrl;
-      }
+      const { coverUrl, galleryUrls } = await prepareGalleryForSubmit();
 
-      // Upload additional images if files were selected
-      let additionalImageUrls = data.images || [];
-      if (additionalImageFiles.length > 0) {
-        // Validate all files
-        for (const file of additionalImageFiles) {
-          if (!isImageFile(file)) {
-            toast({
-              title: "Error",
-              description: "All images must be valid image files",
-              variant: "destructive",
-            });
-            setIsUploading(false);
-            return;
-          }
-          if (!isValidFileSize(file)) {
-            toast({
-              title: "Error",
-              description: "All images must be less than 5MB",
-              variant: "destructive",
-            });
-            setIsUploading(false);
-            return;
-          }
-        }
-        const uploadedUrls = await uploadImages(additionalImageFiles);
-        // Filter out blob URLs from existing images and merge with new uploads
-        const validExistingUrls = (data.images || []).filter(url => !isBlobUrl(url));
-        additionalImageUrls = [...validExistingUrls, ...uploadedUrls];
-      } else {
-        // Filter out any blob URLs that might be in the form data
-        additionalImageUrls = (data.images || []).filter(url => !isBlobUrl(url));
-      }
-
-      // Submit with uploaded URLs
       const submitData: InsertCar = {
         ...data,
-        image: mainImageUrl,
-        images: additionalImageUrls,
+        image: coverUrl,
+        images: galleryUrls,
       };
 
       if (isEdit) {
@@ -313,43 +443,6 @@ export default function CarForm() {
     setAdditionalImagePreviews((prev) => [...prev, ...previews]);
   };
 
-  // Remove additional image (file or URL)
-  const removeAdditionalImage = (index: number) => {
-    const currentImages = form.getValues("images") || [];
-    const isFileIndex = index < additionalImageFiles.length;
-    
-    if (isFileIndex) {
-      // Remove from files
-      const newFiles = [...additionalImageFiles];
-      const removedFile = newFiles.splice(index, 1)[0];
-      setAdditionalImageFiles(newFiles);
-      
-      // Revoke preview URL
-      const newPreviews = [...additionalImagePreviews];
-      const removedPreview = newPreviews.splice(index, 1)[0];
-      revokeImagePreview(removedPreview);
-      setAdditionalImagePreviews(newPreviews);
-    } else {
-      // Remove from URL array
-      const urlIndex = index - additionalImageFiles.length;
-      const newImages = currentImages.filter((_, i) => i !== urlIndex);
-      form.setValue("images", newImages, { shouldDirty: true });
-    }
-  };
-
-  // Add URL field for additional images
-  const addImageUrlField = () => {
-    const currentImages = form.getValues("images") || [];
-    form.setValue("images", [...currentImages, ""], { shouldDirty: true });
-  };
-
-  // Cleanup preview URLs on unmount
-  useEffect(() => {
-    return () => {
-      if (mainImagePreview) revokeImagePreview(mainImagePreview);
-      additionalImagePreviews.forEach(revokeImagePreview);
-    };
-  }, [mainImagePreview, additionalImagePreviews]);
 
   if (isEdit && isLoading) {
     return (
@@ -483,179 +576,118 @@ export default function CarForm() {
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="image"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Main Image</FormLabel>
-                    <div className="space-y-4">
-                      {/* File Upload */}
-                      <div className="flex flex-col gap-2">
+              <div className="space-y-4">
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                    <div>
+                      <FormLabel>Gallery</FormLabel>
+                      <FormDescription>
+                        Upload images or paste URLs, then reorder and choose a cover photo.
+                      </FormDescription>
+                    </div>
+                    <div className="flex flex-col gap-2 md:flex-row md:items-center">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleGalleryFilesChange}
+                        className="cursor-pointer"
+                        data-testid="input-gallery-files"
+                      />
+                      <div className="flex gap-2">
                         <Input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleMainImageChange}
-                          className="cursor-pointer"
-                          data-testid="input-image-file"
+                          placeholder="https://example.com/car.jpg"
+                          value={imageUrlInput}
+                          onChange={(e) => setImageUrlInput(e.target.value)}
+                          data-testid="input-gallery-url"
                         />
-                        <FormDescription>
-                          Upload an image file (max 5MB) or use URL below
-                        </FormDescription>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleAddImageUrl}
+                          className="flex items-center gap-2"
+                        >
+                          <ImagePlus className="h-4 w-4" />
+                          Add URL
+                        </Button>
                       </div>
-                      
-                      {/* URL Input (fallback) */}
-                      <div className="space-y-2">
-                        <FormLabel className="text-sm text-muted-foreground">Or enter image URL:</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="https://example.com/car.jpg"
-                            value={field.value || ""}
-                            onChange={(e) => {
-                              field.onChange(e.target.value);
-                              // Clear file if URL is entered
-                              if (e.target.value && mainImageFile) {
-                                setMainImageFile(null);
-                                if (mainImagePreview) {
-                                  revokeImagePreview(mainImagePreview);
-                                  setMainImagePreview(null);
-                                }
-                              }
-                            }}
-                            data-testid="input-image-url"
-                          />
-                        </FormControl>
-                      </div>
-                      
-                      {/* Preview */}
-                      {(mainImagePreview || field.value) && (
-                        <div className="relative w-full max-w-md">
+                    </div>
+                  </div>
+                </div>
+
+                {galleryItems.length === 0 ? (
+                  <div className="border rounded-lg p-6 text-center text-muted-foreground">
+                    No images yet. Upload files or add URLs above.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {galleryItems.map((item, index) => (
+                      <div
+                        key={item.id}
+                        className="flex flex-col md:flex-row gap-4 border rounded-lg p-3"
+                      >
+                        <div className="relative w-full md:w-48 h-32 rounded-md overflow-hidden border bg-muted">
                           <img
-                            src={mainImagePreview || field.value}
-                            alt="Main image preview"
-                            className="w-full h-48 object-cover rounded-lg border"
+                            src={item.url}
+                            alt={`Gallery item ${index + 1}`}
+                            className="w-full h-full object-cover"
                           />
-                          {mainImageFile && (
+                          {item.isCover && (
+                            <Badge className="absolute top-2 left-2 flex items-center gap-1">
+                              <Star className="h-3 w-3" />
+                              Cover
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex-1 flex flex-col gap-2">
+                          <div className="flex flex-wrap gap-2">
+                            {!item.isCover && (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setCoverImage(item.id)}
+                              >
+                                Set as cover
+                              </Button>
+                            )}
                             <Button
                               type="button"
-                              variant="destructive"
                               size="icon"
-                              className="absolute top-2 right-2"
-                              onClick={() => {
-                                setMainImageFile(null);
-                                if (mainImagePreview) {
-                                  revokeImagePreview(mainImagePreview);
-                                  setMainImagePreview(null);
-                                }
-                                form.setValue("image", "", { shouldDirty: true });
-                              }}
+                              variant="outline"
+                              disabled={index === 0}
+                              onClick={() => moveGalleryItem(item.id, "up")}
+                            >
+                              <ArrowUp className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="outline"
+                              disabled={index === galleryItems.length - 1}
+                              onClick={() => moveGalleryItem(item.id, "down")}
+                            >
+                              <ArrowDown className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="destructive"
+                              onClick={() => removeGalleryItem(item.id)}
                             >
                               <X className="h-4 w-4" />
                             </Button>
+                          </div>
+                          {item.file && (
+                            <p className="text-xs text-muted-foreground">
+                              Pending upload • {item.file.name}
+                            </p>
                           )}
                         </div>
-                      )}
-                    </div>
-                    <FormMessage />
-                  </FormItem>
+                      </div>
+                    ))}
+                  </div>
                 )}
-              />
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <FormLabel>Additional Images</FormLabel>
-                  <div className="flex gap-2">
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handleAdditionalImagesChange}
-                      className="cursor-pointer w-auto"
-                      data-testid="input-additional-images-file"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={addImageUrlField}
-                      className="flex items-center gap-1"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Add URL
-                    </Button>
-                  </div>
-                </div>
-                <FormDescription>
-                  Upload image files (max 5MB each) or add image URLs
-                </FormDescription>
-                
-                {/* File upload previews */}
-                {additionalImagePreviews.map((preview, index) => (
-                  <div key={`file-${index}`} className="flex gap-2 items-start">
-                    <div className="relative flex-1">
-                      <img
-                        src={preview}
-                        alt={`Preview ${index + 1}`}
-                        className="w-full h-32 object-cover rounded-lg border"
-                      />
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-2 right-2"
-                        onClick={() => removeAdditionalImage(index)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-                
-                {/* URL inputs */}
-                {form.watch("images") && form.watch("images")!.map((url, index) => (
-                  <div key={`url-${index}`} className="flex gap-2">
-                    <FormField
-                      control={form.control}
-                      name={`images.${index}`}
-                      render={({ field }) => (
-                        <FormItem className="flex-1">
-                          <FormControl>
-                            <div className="flex gap-2">
-                              <Input
-                                placeholder={`Image URL ${index + 1}`}
-                                value={field.value || ""}
-                                onChange={(e) => field.onChange(e.target.value)}
-                                data-testid={`input-additional-image-url-${index}`}
-                              />
-                              {field.value && (
-                                <div className="w-32 h-20 rounded-lg border overflow-hidden">
-                                  <img
-                                    src={field.value}
-                                    alt={`Preview ${index + 1}`}
-                                    className="w-full h-full object-cover"
-                                    onError={(e) => {
-                                      (e.target as HTMLImageElement).style.display = "none";
-                                    }}
-                                  />
-                                </div>
-                              )}
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="icon"
-                                onClick={() => removeAdditionalImage(additionalImageFiles.length + index)}
-                                className="shrink-0"
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                ))}
               </div>
             </CardContent>
           </Card>

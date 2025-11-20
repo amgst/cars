@@ -28,6 +28,7 @@ import { useState } from "react";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { deleteCarFirebase, getAllCarsFirebase } from "@/lib/carsFirebase";
+import { getThumbnailUrl } from "@/lib/imageUtils";
 
 export default function CarsList() {
   const { toast } = useToast();
@@ -132,7 +133,7 @@ export default function CarsList() {
                     <TableCell>
                       <div className="w-24 h-16 rounded-md overflow-hidden border">
                         <img
-                          src={car.image}
+                          src={getThumbnailUrl(car.image, 320)}
                           alt={car.name}
                           className="w-full h-full object-cover"
                         />

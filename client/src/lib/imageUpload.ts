@@ -37,31 +37,6 @@ export async function uploadImage(file: File): Promise<string> {
 }
 
 /**
- * Upload multiple image files to the server
- * @param files - Array of image files to upload
- * @returns Promise resolving to array of image URLs
- */
-export async function uploadImages(files: File[]): Promise<string[]> {
-  const formData = new FormData();
-  files.forEach((file) => {
-    formData.append("images", file);
-  });
-
-  const response = await fetch("/api/upload/images", {
-    method: "POST",
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: "Upload failed" }));
-    throw new Error(error.error || "Failed to upload images");
-  }
-
-  const data = await response.json();
-  return data.urls.map((item: { url: string }) => item.url);
-}
-
-/**
  * Validate if a file is an image
  * @param file - The file to validate
  * @returns boolean indicating if the file is an image

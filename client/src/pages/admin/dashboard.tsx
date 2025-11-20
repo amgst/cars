@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Car as CarIcon, Plus, DollarSign, CheckCircle, XCircle } from "lucide-react";
+import { getThumbnailUrl } from "@/lib/imageUtils";
 import { getAllCarsFirebase } from "@/lib/carsFirebase";
 
 export default function AdminDashboard() {
@@ -144,7 +145,7 @@ export default function AdminDashboard() {
                   <div className="flex items-center gap-4 p-4 rounded-lg hover-elevate active-elevate-2 cursor-pointer" data-testid={`row-car-${car.id}`}>
                     <div className="w-24 h-16 rounded-md overflow-hidden border flex-shrink-0">
                       <img
-                        src={car.image}
+                        src={getThumbnailUrl(car.image, 320)}
                         alt={car.name}
                         className="w-full h-full object-cover"
                       />

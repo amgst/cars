@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Fuel, Settings, Users as SeatsIcon, Search, SlidersHorizontal } from "lucide-react";
 import { getAllCarsFirebase } from "@/lib/carsFirebase";
+import { getThumbnailUrl } from "@/lib/imageUtils";
 
 export default function Cars() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -137,7 +138,7 @@ export default function Cars() {
                   <Card className="overflow-hidden hover-elevate active-elevate-2 cursor-pointer h-full" data-testid={`card-car-${car.id}`}>
                     <div className="aspect-[4/3] overflow-hidden">
                       <img
-                        src={car.image}
+                        src={getThumbnailUrl(car.image, 720)}
                         alt={car.name}
                         className="w-full h-full object-cover"
                       />
