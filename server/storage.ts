@@ -28,7 +28,9 @@ export class MemStorage implements IStorage {
   constructor() {
     this.users = new Map();
     this.cars = new Map();
-    this.seedCars();
+    if (process.env.SEED_DEMO_CARS === "true") {
+      this.seedCars();
+    }
   }
 
   private seedCars() {
