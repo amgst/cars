@@ -6,12 +6,15 @@ import multer from "multer";
 import { storage } from "./storage";
 import { insertCarSchema } from "@shared/schema";
 import { z } from "zod";
-import { upload, getImageUrl } from "./upload";
+import { upload, getImageUrl, extractFilenameFromUrl } from "./upload";
 
-export async function registerRoutes(app: Express): Promise<Server> {
+export async function registerRoutes(app: Express): Promise<Server | void> {
   // Serve attached_assets folder statically (includes uploads and generated_images)
-  const assetsPath = path.resolve(import.meta.dirname, "..", "attached_assets");
-  app.use("/attached_assets", express.static(assetsPath));
+  // Only in non-serverless environments (local dev)
+  if (process.env.VERCEL !== "1") {
+    const assetsPath = path.resolve(import.meta.dirname, "..", "attached_assets");
+    app.use("/attached_assets", express.static(assetsPath));
+  }
 
   // Test endpoint to verify route registration
   app.get("/api/upload/test", (req, res) => {
@@ -41,9 +44,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log("No file in request");
           return res.status(400).json({ error: "No image file provided" });
         }
-        console.log("File uploaded successfully:", req.file.filename);
-        const imageUrl = getImageUrl(req.file.filename);
-        res.json({ url: imageUrl, filename: req.file.filename });
+        console.log("File uploaded successfully:", req.file.filename || "in-memory");
+        const imageUrl = await getImageUrl(req.file.filename || req.file.buffer, req.file);
+        const filename = req.file.filename || extractFilenameFromUrl(imageUrl) || "unknown";
+        res.json({ url: imageUrl, filename });
       } catch (error) {
         console.error("Upload error:", error);
         const errorMessage = error instanceof Error ? error.message : "Failed to upload image";
@@ -53,8 +57,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Upload multiple images endpoint
-  app.post("/api/upload/images", (req, res, next) => {
-    upload.array("images", 10)(req, res, (err) => {
+  app.post("/api/upload/images", async (req, res, next) => {
+    upload.array("images", 10)(req, res, async (err) => {
       if (err) {
         if (err instanceof multer.MulterError) {
           if (err.code === "LIMIT_FILE_SIZE") {
@@ -76,10 +80,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ error: "No image files provided" });
         }
         const files = Array.isArray(req.files) ? req.files : [req.files];
-        const urls = files.map((file) => ({
-          url: getImageUrl(file.filename),
-          filename: file.filename,
-        }));
+        const urls = await Promise.all(
+          files.map(async (file) => {
+            const url = await getImageUrl(file.filename || file.buffer, file);
+            const filename = file.filename || extractFilenameFromUrl(url) || "unknown";
+            return { url, filename };
+          })
+        );
         res.json({ urls });
       } catch (error) {
         console.error("Upload error:", error);
@@ -163,6 +170,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  const httpServer = createServer(app);
-  return httpServer;
+  // Only create HTTP server in non-serverless environments
+  if (process.env.VERCEL !== "1") {
+    const httpServer = createServer(app);
+    return httpServer;
+  }
+  // For Vercel, just return void
+  return;
 }
