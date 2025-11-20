@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Car as CarIcon, Plus, DollarSign, CheckCircle, XCircle } from "lucide-react";
+import { getAllCarsFirebase } from "@/lib/carsFirebase";
 
 export default function AdminDashboard() {
   const { data: cars, isLoading } = useQuery<Car[]>({
-    queryKey: ["/api/cars"],
+    queryKey: ["cars"],
+    queryFn: getAllCarsFirebase,
   });
 
   const stats = {
