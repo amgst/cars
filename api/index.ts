@@ -1,12 +1,26 @@
 // Vercel serverless function entry point
 // This wraps the Express app for Vercel's serverless environment
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "../server/routes";
 
 // Set Vercel environment flag
 process.env.VERCEL = "1";
 
 const app = express();
+type RegisterRoutesFn = typeof import("../server/routes").registerRoutes;
+let registerRoutesFn: RegisterRoutesFn | null = null;
+
+async function loadRegisterRoutes(): Promise<RegisterRoutesFn> {
+  if (!registerRoutesFn) {
+    if (process.env.VERCEL === "1") {
+      const module = await import("../server-dist/routes.js");
+      registerRoutesFn = module.registerRoutes as RegisterRoutesFn;
+    } else {
+      const module = await import("../server/routes");
+      registerRoutesFn = module.registerRoutes;
+    }
+  }
+  return registerRoutesFn!;
+}
 
 declare module 'http' {
   interface IncomingMessage {
@@ -46,6 +60,7 @@ let appWithRoutes: express.Express | null = null;
 
 async function initializeApp() {
   if (!serverInitialized) {
+    const registerRoutes = await loadRegisterRoutes();
     await registerRoutes(app);
     serverInitialized = true;
     appWithRoutes = app;
