@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { getCarBySlugFirebase } from "@/lib/carsFirebase";
 import { BookingForm } from "@/components/booking-form";
+import { getPricingSettings } from "@/lib/pricingSettingsFirebase";
 
 export default function CarDetail() {
   const { slug } = useParams();
@@ -45,6 +46,11 @@ export default function CarDetail() {
     queryFn: () => getCarBySlugFirebase(slug!),
   });
 
+  const { data: pricingSettings } = useQuery({
+    queryKey: ["pricingSettings"],
+    queryFn: () => getPricingSettings(),
+  });
+
   // Combine main image with additional images, filter out empty strings and duplicates
   // This needs to be calculated before early returns to avoid hook order issues
   const allImages = car
@@ -58,15 +64,24 @@ export default function CarDetail() {
     (image, index) => allImages.indexOf(image) === index,
   );
 
-  const insuranceRatePerDay = 25;
-  const deliveryFlatRate = 75;
+  // Use pricing settings from Firebase, fallback to defaults
+  const insuranceRatePerDay = pricingSettings?.insuranceRatePerDay ?? 25;
+  const deliveryFlatRate = pricingSettings?.deliveryFlatRate ?? 75;
+  const minDays = pricingSettings?.minimumRentalDays ?? 1;
+  const maxDays = pricingSettings?.maximumRentalDays ?? 30;
+  const taxRate = pricingSettings?.taxRate ?? 0;
+  const enableInsurance = pricingSettings?.enableInsurance ?? true;
+  const enableDelivery = pricingSettings?.enableDelivery ?? true;
+  const enableTax = pricingSettings?.enableTax ?? false;
 
-  const safeDays = Math.max(1, Math.min(30, estimatorDays || 1));
+  const safeDays = Math.max(minDays, Math.min(maxDays, estimatorDays || minDays));
   const baseEstimate = car ? car.pricePerDay * safeDays : 0;
   const insuranceEstimate =
-    includeInsurance && car ? insuranceRatePerDay * safeDays : 0;
-  const deliveryEstimate = includeDelivery ? deliveryFlatRate : 0;
-  const totalEstimate = baseEstimate + insuranceEstimate + deliveryEstimate;
+    includeInsurance && car && enableInsurance ? insuranceRatePerDay * safeDays : 0;
+  const deliveryEstimate = includeDelivery && enableDelivery ? deliveryFlatRate : 0;
+  const subtotal = baseEstimate + insuranceEstimate + deliveryEstimate;
+  const taxAmount = enableTax ? (subtotal * taxRate) / 100 : 0;
+  const totalEstimate = subtotal + taxAmount;
 
   // Reset selected image when car changes
   useEffect(() => {
@@ -396,45 +411,49 @@ export default function CarDetail() {
                   </label>
                   <Input
                     type="number"
-                    min={1}
-                    max={30}
+                    min={minDays}
+                    max={maxDays}
                     value={safeDays}
                     onChange={(e) =>
-                      setEstimatorDays(Math.max(1, Math.min(30, e.target.valueAsNumber || 1)))
+                      setEstimatorDays(Math.max(minDays, Math.min(maxDays, e.target.valueAsNumber || minDays)))
                     }
                   />
                   <p className="text-xs text-muted-foreground mt-1">
-                    Between 1 and 30 days
+                    Between {minDays} and {maxDays} days
                   </p>
                 </div>
 
-                <div className="flex items-center justify-between border rounded-lg px-4 py-3">
-                  <div>
-                    <p className="text-sm font-medium">Premium insurance</p>
-                    <p className="text-xs text-muted-foreground">
-                      ${insuranceRatePerDay}/day damage coverage
-                    </p>
+                {enableInsurance && (
+                  <div className="flex items-center justify-between border rounded-lg px-4 py-3">
+                    <div>
+                      <p className="text-sm font-medium">Premium insurance</p>
+                      <p className="text-xs text-muted-foreground">
+                        ${insuranceRatePerDay}/day damage coverage
+                      </p>
+                    </div>
+                    <Switch
+                      checked={includeInsurance}
+                      onCheckedChange={setIncludeInsurance}
+                      data-testid="switch-insurance"
+                    />
                   </div>
-                  <Switch
-                    checked={includeInsurance}
-                    onCheckedChange={setIncludeInsurance}
-                    data-testid="switch-insurance"
-                  />
-                </div>
+                )}
 
-                <div className="flex items-center justify-between border rounded-lg px-4 py-3">
-                  <div>
-                    <p className="text-sm font-medium">Delivery & pickup</p>
-                    <p className="text-xs text-muted-foreground">
-                      Flat ${deliveryFlatRate} concierge delivery
-                    </p>
-                  </div>
+                {enableDelivery && (
+                  <div className="flex items-center justify-between border rounded-lg px-4 py-3">
+                    <div>
+                      <p className="text-sm font-medium">Delivery & pickup</p>
+                      <p className="text-xs text-muted-foreground">
+                        Flat ${deliveryFlatRate} concierge delivery
+                      </p>
+                    </div>
                     <Switch
                       checked={includeDelivery}
                       onCheckedChange={setIncludeDelivery}
                       data-testid="switch-delivery"
                     />
-                </div>
+                  </div>
+                )}
               </div>
 
               <div className="border rounded-lg p-4 space-y-2 bg-muted/40">
@@ -442,18 +461,28 @@ export default function CarDetail() {
                   <span>Base ({safeDays} {safeDays === 1 ? "day" : "days"})</span>
                   <span className="font-semibold">${baseEstimate.toLocaleString()}</span>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span>Insurance add-on</span>
-                  <span className="font-semibold">
-                    {includeInsurance ? `$${insuranceEstimate.toLocaleString()}` : "$0"}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span>Delivery service</span>
-                  <span className="font-semibold">
-                    {includeDelivery ? `$${deliveryEstimate.toLocaleString()}` : "$0"}
-                  </span>
-                </div>
+                {enableInsurance && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span>Insurance add-on</span>
+                    <span className="font-semibold">
+                      {includeInsurance ? `$${insuranceEstimate.toLocaleString()}` : "$0"}
+                    </span>
+                  </div>
+                )}
+                {enableDelivery && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span>Delivery service</span>
+                    <span className="font-semibold">
+                      {includeDelivery ? `$${deliveryEstimate.toLocaleString()}` : "$0"}
+                    </span>
+                  </div>
+                )}
+                {enableTax && taxAmount > 0 && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span>Tax ({taxRate}%)</span>
+                    <span className="font-semibold">${taxAmount.toLocaleString()}</span>
+                  </div>
+                )}
                 <Separator />
                 <div className="flex items-center justify-between">
                   <span className="text-base font-semibold">Estimated total</span>

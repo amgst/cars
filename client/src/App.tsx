@@ -14,6 +14,7 @@ import CarDetail from "@/pages/car-detail";
 import AdminDashboard from "@/pages/admin/dashboard";
 import CarsList from "@/pages/admin/cars-list";
 import CarForm from "@/pages/admin/car-form";
+import PricingSettings from "@/pages/admin/pricing-settings";
 
 function AdminRouter() {
   const style = {
@@ -35,6 +36,7 @@ function AdminRouter() {
                 <Route path="/admin/cars/new" component={CarForm} />
                 <Route path="/admin/cars/:id/edit" component={CarForm} />
                 <Route path="/admin/cars" component={CarsList} />
+                <Route path="/admin/pricing" component={PricingSettings} />
                 <Route path="/admin" component={AdminDashboard} />
                 <Route component={NotFound} />
               </Switch>
@@ -69,6 +71,7 @@ function Router() {
       <Route path="/admin/cars/new" component={AdminRouter} />
       <Route path="/admin/cars/:id/edit" component={AdminRouter} />
       <Route path="/admin/cars" component={AdminRouter} />
+      <Route path="/admin/pricing" component={AdminRouter} />
       <Route path="/admin" component={AdminRouter} />
       <Route component={PublicRouter} />
     </Switch>

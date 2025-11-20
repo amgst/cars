@@ -10,7 +10,7 @@ import {
   SidebarMenuItem,
   SidebarHeader,
 } from "@/components/ui/sidebar";
-import { Car, LayoutDashboard, Plus } from "lucide-react";
+import { Car, LayoutDashboard, Plus, DollarSign } from "lucide-react";
 
 const menuItems = [
   {
@@ -27,6 +27,11 @@ const menuItems = [
     title: "Add New Car",
     url: "/admin/cars/new",
     icon: Plus,
+  },
+  {
+    title: "Pricing Settings",
+    url: "/admin/pricing",
+    icon: DollarSign,
   },
 ];
 
