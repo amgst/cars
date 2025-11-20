@@ -24,7 +24,7 @@ export async function registerRoutes(app: Express): Promise<Server | void> {
   // Upload single image endpoint
   app.post("/api/upload/image", (req, res, next) => {
     console.log("Upload route hit - Content-Type:", req.headers['content-type']);
-    upload.single("image")(req, res, (err) => {
+    upload.single("image")(req, res, async (err) => {
       if (err) {
         console.error("Multer error:", err);
         if (err instanceof multer.MulterError) {
