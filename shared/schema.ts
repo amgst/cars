@@ -70,7 +70,14 @@ export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
 // Booking schema
-export const bookingSchema = z.object({
+export const bookingStatusSchema = z.enum([
+  "pending",
+  "confirmed",
+  "completed",
+  "cancelled",
+]);
+
+export const insertBookingSchema = z.object({
   carId: z.string().min(1, "Car ID is required"),
   carName: z.string().min(1, "Car name is required"),
   startDate: z.string().min(1, "Start date is required"),
@@ -79,8 +86,17 @@ export const bookingSchema = z.object({
   lastName: z.string().min(1, "Last name is required"),
   email: z.string().email("Invalid email address"),
   phone: z.string().min(1, "Phone number is required"),
-  address: z.string().optional(),
-  notes: z.string().optional(),
+  address: z.string().optional().or(z.literal("")),
+  notes: z.string().optional().or(z.literal("")),
+  totalPrice: z.number().min(0),
+});
+
+export type InsertBooking = z.infer<typeof insertBookingSchema>;
+
+export const bookingSchema = insertBookingSchema.extend({
+  id: z.string().min(1),
+  status: bookingStatusSchema.default("pending"),
+  createdAt: z.string(),
 });
 
 export type Booking = z.infer<typeof bookingSchema>;

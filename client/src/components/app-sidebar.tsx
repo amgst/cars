@@ -10,7 +10,7 @@ import {
   SidebarMenuItem,
   SidebarHeader,
 } from "@/components/ui/sidebar";
-import { Car, LayoutDashboard, Plus, DollarSign } from "lucide-react";
+import { Car, LayoutDashboard, Plus, DollarSign, CalendarDays } from "lucide-react";
 
 const menuItems = [
   {
@@ -32,6 +32,11 @@ const menuItems = [
     title: "Pricing Settings",
     url: "/admin/pricing",
     icon: DollarSign,
+  },
+  {
+    title: "Bookings",
+    url: "/admin/bookings",
+    icon: CalendarDays,
   },
 ];
 

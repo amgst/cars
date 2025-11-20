@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { bookingSchema, type Booking } from "@shared/schema";
+import { insertBookingSchema, type InsertBooking } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -32,6 +32,8 @@ import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
+import { createBookingFirebase } from "@/lib/bookingsFirebase";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface BookingFormProps {
   carId: string;
@@ -49,10 +51,11 @@ export function BookingForm({
   onOpenChange,
 }: BookingFormProps) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const form = useForm<Booking>({
-    resolver: zodResolver(bookingSchema),
+  const form = useForm<InsertBooking>({
+    resolver: zodResolver(insertBookingSchema),
     defaultValues: {
       carId,
       carName,
@@ -64,6 +67,7 @@ export function BookingForm({
       phone: "",
       address: "",
       notes: "",
+      totalPrice: 0,
     },
   });
 
@@ -98,16 +102,23 @@ export function BookingForm({
         phone: "",
         address: "",
         notes: "",
+        totalPrice: 0,
       });
     }
   }, [open, carId, carName, form]);
 
-  const onSubmit = async (data: Booking) => {
+  useEffect(() => {
+    form.setValue("totalPrice", totalPrice);
+  }, [totalPrice, form]);
+
+  const onSubmit = async (data: InsertBooking) => {
     setIsSubmitting(true);
     try {
-      // TODO: Replace with actual booking API call
-      // For now, just simulate a booking
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await createBookingFirebase({
+        ...data,
+        totalPrice,
+      });
+      await queryClient.invalidateQueries({ queryKey: ["bookings"] });
       
       toast({
         title: "Booking Submitted!",
