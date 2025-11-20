@@ -32,12 +32,17 @@ export class MemStorage implements IStorage {
   }
 
   private seedCars() {
-    const sampleCars: InsertCar[] = [
+    const sampleCars: any[] = [
       {
         name: "Tesla Model 3",
         category: "Electric",
         description: "Experience the future of driving with the Tesla Model 3. This premium electric sedan combines cutting-edge technology, impressive range, and exhilarating performance in a sleek, modern package.",
         image: "/attached_assets/generated_images/Tesla_Model_3_sedan_123f6843.png",
+        images: [
+          "/attached_assets/generated_images/Tesla_Model_3_sedan_123f6843.png",
+          "/attached_assets/generated_images/Tesla_Model_3_sedan_123f6843.png",
+          "/attached_assets/generated_images/Tesla_Model_3_sedan_123f6843.png"
+        ],
         pricePerDay: 120,
         seats: 5,
         transmission: "Automatic",
@@ -56,6 +61,11 @@ export class MemStorage implements IStorage {
         category: "SUV",
         description: "The BMW X5 delivers luxury and versatility in perfect harmony. This premium SUV offers spacious seating, advanced technology, and powerful performance for both city driving and weekend adventures.",
         image: "/attached_assets/generated_images/BMW_X5_SUV_e9085a45.png",
+        images: [
+          "/attached_assets/generated_images/BMW_X5_SUV_e9085a45.png",
+          "/attached_assets/generated_images/BMW_X5_SUV_e9085a45.png",
+          "/attached_assets/generated_images/BMW_X5_SUV_e9085a45.png"
+        ],
         pricePerDay: 150,
         seats: 7,
         transmission: "Automatic",
@@ -74,6 +84,11 @@ export class MemStorage implements IStorage {
         category: "Sedan",
         description: "The Toyota Camry is the perfect blend of reliability, comfort, and efficiency. This midsize sedan offers a smooth ride, excellent fuel economy, and all the features you need for daily driving.",
         image: "/attached_assets/generated_images/Toyota_Camry_sedan_a32cd876.png",
+        images: [
+          "/attached_assets/generated_images/Toyota_Camry_sedan_a32cd876.png",
+          "/attached_assets/generated_images/Toyota_Camry_sedan_a32cd876.png",
+          "/attached_assets/generated_images/Toyota_Camry_sedan_a32cd876.png"
+        ],
         pricePerDay: 80,
         seats: 5,
         transmission: "Automatic",
@@ -92,6 +107,11 @@ export class MemStorage implements IStorage {
         category: "Luxury",
         description: "Step into ultimate luxury with the Mercedes-Benz S-Class. This flagship sedan redefines premium driving with its exquisite craftsmanship, cutting-edge technology, and unparalleled comfort.",
         image: "/attached_assets/generated_images/Mercedes_S-Class_luxury_8b2e970a.png",
+        images: [
+          "/attached_assets/generated_images/Mercedes_S-Class_luxury_8b2e970a.png",
+          "/attached_assets/generated_images/Mercedes_S-Class_luxury_8b2e970a.png",
+          "/attached_assets/generated_images/Mercedes_S-Class_luxury_8b2e970a.png"
+        ],
         pricePerDay: 250,
         seats: 5,
         transmission: "Automatic",
@@ -110,6 +130,11 @@ export class MemStorage implements IStorage {
         category: "Sports",
         description: "Unleash your passion for driving with the iconic Porsche 911. This legendary sports car delivers breathtaking performance, precise handling, and timeless design that turns every drive into an unforgettable experience.",
         image: "/attached_assets/generated_images/Porsche_911_sports_c1be3448.png",
+        images: [
+          "/attached_assets/generated_images/Porsche_911_sports_c1be3448.png",
+          "/attached_assets/generated_images/Porsche_911_sports_c1be3448.png",
+          "/attached_assets/generated_images/Porsche_911_sports_c1be3448.png"
+        ],
         pricePerDay: 300,
         seats: 4,
         transmission: "Manual",
@@ -128,6 +153,11 @@ export class MemStorage implements IStorage {
         category: "SUV",
         description: "The Honda CR-V is your ideal companion for family adventures. This versatile compact SUV combines practicality, safety, and comfort with excellent fuel efficiency and spacious interior.",
         image: "/attached_assets/generated_images/Honda_CR-V_compact_SUV_52dc1a4d.png",
+        images: [
+          "/attached_assets/generated_images/Honda_CR-V_compact_SUV_52dc1a4d.png",
+          "/attached_assets/generated_images/Honda_CR-V_compact_SUV_52dc1a4d.png",
+          "/attached_assets/generated_images/Honda_CR-V_compact_SUV_52dc1a4d.png"
+        ],
         pricePerDay: 95,
         seats: 5,
         transmission: "Automatic",
@@ -146,7 +176,12 @@ export class MemStorage implements IStorage {
     sampleCars.forEach((carData) => {
       const id = randomUUID();
       const slug = generateSlug(carData.name);
-      const car: Car = { ...carData, id, slug };
+      const car: Car = { 
+        ...carData, 
+        id, 
+        slug,
+        images: carData.images || []
+      };
       this.cars.set(id, car);
     });
   }
@@ -185,7 +220,17 @@ export class MemStorage implements IStorage {
   async createCar(insertCar: InsertCar): Promise<Car> {
     const id = randomUUID();
     const slug = generateSlug(insertCar.name);
-    const car: Car = { ...insertCar, id, slug };
+    // Ensure images array exists
+    const carData: any = {
+      ...insertCar,
+      images: insertCar.images || []
+    };
+    const car: Car = { 
+      ...carData, 
+      id, 
+      slug,
+      images: carData.images || []
+    };
     this.cars.set(id, car);
     return car;
   }
@@ -196,7 +241,17 @@ export class MemStorage implements IStorage {
       return undefined;
     }
     const slug = generateSlug(insertCar.name);
-    const updatedCar: Car = { ...insertCar, id, slug };
+    // Ensure images array exists
+    const carData: any = {
+      ...insertCar,
+      images: insertCar.images || []
+    };
+    const updatedCar: Car = { 
+      ...carData, 
+      id, 
+      slug,
+      images: carData.images || []
+    };
     this.cars.set(id, updatedCar);
     return updatedCar;
   }

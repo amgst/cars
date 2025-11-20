@@ -1,10 +1,94 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import path from "path";
+import express from "express";
+import multer from "multer";
 import { storage } from "./storage";
 import { insertCarSchema } from "@shared/schema";
 import { z } from "zod";
+import { upload, getImageUrl } from "./upload";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Serve attached_assets folder statically (includes uploads and generated_images)
+  const assetsPath = path.resolve(import.meta.dirname, "..", "attached_assets");
+  app.use("/attached_assets", express.static(assetsPath));
+
+  // Test endpoint to verify route registration
+  app.get("/api/upload/test", (req, res) => {
+    res.json({ message: "Upload route is working" });
+  });
+
+  // Upload single image endpoint
+  app.post("/api/upload/image", (req, res, next) => {
+    console.log("Upload route hit - Content-Type:", req.headers['content-type']);
+    upload.single("image")(req, res, (err) => {
+      if (err) {
+        console.error("Multer error:", err);
+        if (err instanceof multer.MulterError) {
+          if (err.code === "LIMIT_FILE_SIZE") {
+            return res.status(400).json({ error: "File too large. Maximum size is 5MB" });
+          }
+          return res.status(400).json({ error: err.message });
+        }
+        if (err) {
+          return res.status(400).json({ error: err.message || "Upload failed" });
+        }
+        return next(err);
+      }
+      
+      try {
+        if (!req.file) {
+          console.log("No file in request");
+          return res.status(400).json({ error: "No image file provided" });
+        }
+        console.log("File uploaded successfully:", req.file.filename);
+        const imageUrl = getImageUrl(req.file.filename);
+        res.json({ url: imageUrl, filename: req.file.filename });
+      } catch (error) {
+        console.error("Upload error:", error);
+        const errorMessage = error instanceof Error ? error.message : "Failed to upload image";
+        res.status(500).json({ error: errorMessage });
+      }
+    });
+  });
+
+  // Upload multiple images endpoint
+  app.post("/api/upload/images", (req, res, next) => {
+    upload.array("images", 10)(req, res, (err) => {
+      if (err) {
+        if (err instanceof multer.MulterError) {
+          if (err.code === "LIMIT_FILE_SIZE") {
+            return res.status(400).json({ error: "File too large. Maximum size is 5MB" });
+          }
+          if (err.code === "LIMIT_FILE_COUNT") {
+            return res.status(400).json({ error: "Too many files. Maximum is 10 files" });
+          }
+          return res.status(400).json({ error: err.message });
+        }
+        if (err) {
+          return res.status(400).json({ error: err.message || "Upload failed" });
+        }
+        return next(err);
+      }
+      
+      try {
+        if (!req.files || (Array.isArray(req.files) && req.files.length === 0)) {
+          return res.status(400).json({ error: "No image files provided" });
+        }
+        const files = Array.isArray(req.files) ? req.files : [req.files];
+        const urls = files.map((file) => ({
+          url: getImageUrl(file.filename),
+          filename: file.filename,
+        }));
+        res.json({ urls });
+      } catch (error) {
+        console.error("Upload error:", error);
+        const errorMessage = error instanceof Error ? error.message : "Failed to upload images";
+        res.status(500).json({ error: errorMessage });
+      }
+    });
+  });
+
   app.get("/api/cars", async (_req, res) => {
     try {
       const cars = await storage.getAllCars();

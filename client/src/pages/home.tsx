@@ -7,17 +7,19 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import heroImage from "@assets/generated_images/Hero_banner_luxury_car_0ff28a2c.png";
+import { getAllCarsFirebase } from "@/lib/carsFirebase";
 import { Users, Car as CarIcon, MapPin, Shield, ArrowRight, Fuel, Settings, Users as SeatsIcon, Search } from "lucide-react";
 
 export default function Home() {
   const { data: cars, isLoading } = useQuery<Car[]>({
-    queryKey: ["/api/cars"],
+    queryKey: ["cars"],
+    queryFn: getAllCarsFirebase,
   });
 
   const featuredCars = cars?.slice(0, 3) || [];
 
   return (
-    <div className="min-h-screen">
+    <div>
       <section className="relative h-screen min-h-[600px] flex items-center justify-center">
         <div
           className="absolute inset-0 bg-cover bg-center"

@@ -9,12 +9,23 @@ declare module 'http' {
     rawBody: unknown
   }
 }
-app.use(express.json({
-  verify: (req, _res, buf) => {
-    req.rawBody = buf;
+// Only parse JSON for non-multipart requests (multer handles multipart)
+app.use((req, res, next) => {
+  if (req.headers['content-type']?.includes('multipart/form-data')) {
+    return next(); // Skip JSON parsing for file uploads
   }
-}));
-app.use(express.urlencoded({ extended: false }));
+  express.json({
+    verify: (req, _res, buf) => {
+      req.rawBody = buf;
+    }
+  })(req, res, next);
+});
+app.use((req, res, next) => {
+  if (req.headers['content-type']?.includes('multipart/form-data')) {
+    return next(); // Skip urlencoded parsing for file uploads
+  }
+  express.urlencoded({ extended: false })(req, res, next);
+});
 
 app.use((req, res, next) => {
   const start = Date.now();

@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Car } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -23,23 +23,26 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye } from "lucide-react";
 import { useState } from "react";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { deleteCarFirebase, getAllCarsFirebase } from "@/lib/carsFirebase";
 
 export default function CarsList() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   
   const { data: cars, isLoading } = useQuery<Car[]>({
-    queryKey: ["/api/cars"],
+    queryKey: ["cars"],
+    queryFn: getAllCarsFirebase,
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => apiRequest("DELETE", `/api/cars/${id}`),
+    mutationFn: (id: string) => deleteCarFirebase(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/cars"] });
+      queryClient.invalidateQueries({ queryKey: ["cars"] });
       toast({
         title: "Success",
         description: "Car deleted successfully",
@@ -113,7 +116,19 @@ export default function CarsList() {
               </TableHeader>
               <TableBody>
                 {cars.map((car) => (
-                  <TableRow key={car.id} data-testid={`row-car-${car.id}`}>
+                  <TableRow 
+                    key={car.id} 
+                    data-testid={`row-car-${car.id}`}
+                    className="cursor-pointer"
+                    onClick={(e) => {
+                      // Don't navigate if clicking on action buttons
+                      const target = e.target as HTMLElement;
+                      if (target.closest('button') || target.closest('a')) {
+                        return;
+                      }
+                      setLocation(`/admin/cars/${car.id}/edit`);
+                    }}
+                  >
                     <TableCell>
                       <div className="w-24 h-16 rounded-md overflow-hidden border">
                         <img
@@ -133,8 +148,13 @@ export default function CarsList() {
                         {car.available ? "Available" : "Booked"}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-2">
+                        <Link href={`/cars/${car.slug}`} target="_blank">
+                          <Button size="icon" variant="ghost" data-testid={`button-view-${car.id}`}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </Link>
                         <Link href={`/admin/cars/${car.id}/edit`}>
                           <Button size="icon" variant="ghost" data-testid={`button-edit-${car.id}`}>
                             <Pencil className="h-4 w-4" />

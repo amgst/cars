@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Fuel, Settings, Users as SeatsIcon, Search, SlidersHorizontal } from "lucide-react";
+import { getAllCarsFirebase } from "@/lib/carsFirebase";
 
 export default function Cars() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -16,7 +17,8 @@ export default function Cars() {
   const [transmissionFilter, setTransmissionFilter] = useState<string>("all");
 
   const { data: cars, isLoading } = useQuery<Car[]>({
-    queryKey: ["/api/cars"],
+    queryKey: ["cars"],
+    queryFn: getAllCarsFirebase,
   });
 
   const filteredCars = cars?.filter((car) => {

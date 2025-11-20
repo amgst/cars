@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Navbar } from "@/components/navbar";
+import { Footer } from "@/components/footer";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Cars from "@/pages/cars";
@@ -31,10 +32,10 @@ function AdminRouter() {
           <main className="flex-1 overflow-auto">
             <div className="p-8">
               <Switch>
-                <Route path="/admin" component={AdminDashboard} />
-                <Route path="/admin/cars" component={CarsList} />
                 <Route path="/admin/cars/new" component={CarForm} />
                 <Route path="/admin/cars/:id/edit" component={CarForm} />
+                <Route path="/admin/cars" component={CarsList} />
+                <Route path="/admin" component={AdminDashboard} />
                 <Route component={NotFound} />
               </Switch>
             </div>
@@ -47,16 +48,17 @@ function AdminRouter() {
 
 function PublicRouter() {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen flex flex-col">
       <Navbar />
-      <div className="pt-16">
+      <main className="flex-1 pt-16">
         <Switch>
           <Route path="/" component={Home} />
           <Route path="/cars" component={Cars} />
           <Route path="/cars/:slug" component={CarDetail} />
           <Route component={NotFound} />
         </Switch>
-      </div>
+      </main>
+      <Footer />
     </div>
   );
 }
@@ -64,8 +66,10 @@ function PublicRouter() {
 function Router() {
   return (
     <Switch>
+      <Route path="/admin/cars/new" component={AdminRouter} />
+      <Route path="/admin/cars/:id/edit" component={AdminRouter} />
+      <Route path="/admin/cars" component={AdminRouter} />
       <Route path="/admin" component={AdminRouter} />
-      <Route path="/admin/:rest*" component={AdminRouter} />
       <Route component={PublicRouter} />
     </Switch>
   );

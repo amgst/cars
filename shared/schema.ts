@@ -10,6 +10,7 @@ export const cars = pgTable("cars", {
   category: text("category").notNull(),
   description: text("description").notNull(),
   image: text("image").notNull(),
+  images: text("images").array().default(sql`'{}'`),
   pricePerDay: integer("price_per_day").notNull(),
   seats: integer("seats").notNull(),
   transmission: text("transmission").notNull(),
@@ -24,9 +25,31 @@ export const cars = pgTable("cars", {
   available: boolean("available").notNull().default(true),
 });
 
+// Custom URL validator that accepts both full URLs and relative paths
+const urlOrPath = z.string().refine(
+  (val) => {
+    if (!val || val.trim() === "") return true; // Allow empty strings
+    // Check if it's a valid URL (http/https) or a valid relative path (starts with /)
+    try {
+      new URL(val);
+      return true; // Valid absolute URL
+    } catch {
+      // Not a valid absolute URL, check if it's a valid relative path
+      return val.startsWith("/") || val.startsWith("./") || val.startsWith("../");
+    }
+  },
+  {
+    message: "Must be a valid URL or relative path (starting with /)",
+  }
+);
+
+// Create a custom schema that extends the generated one to properly handle images
 export const insertCarSchema = createInsertSchema(cars).omit({
   id: true,
   slug: true,
+}).extend({
+  image: urlOrPath,
+  images: z.array(urlOrPath).optional().nullable().default([]),
 });
 
 export type InsertCar = z.infer<typeof insertCarSchema>;
@@ -45,3 +68,19 @@ export const insertUserSchema = createInsertSchema(users).pick({
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+// Booking schema
+export const bookingSchema = z.object({
+  carId: z.string().min(1, "Car ID is required"),
+  carName: z.string().min(1, "Car name is required"),
+  startDate: z.string().min(1, "Start date is required"),
+  endDate: z.string().min(1, "End date is required"),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  email: z.string().email("Invalid email address"),
+  phone: z.string().min(1, "Phone number is required"),
+  address: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+export type Booking = z.infer<typeof bookingSchema>;
