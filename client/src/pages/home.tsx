@@ -9,7 +9,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import heroImage from "@assets/generated_images/Hero_banner_luxury_car_0ff28a2c.png";
 import { getAllCarsFirebase } from "@/lib/carsFirebase";
 import { getOptimizedImageUrl, getThumbnailUrl } from "@/lib/imageUtils";
-import { Users, Car as CarIcon, MapPin, Shield, ArrowRight, Fuel, Settings, Users as SeatsIcon, Search } from "lucide-react";
+import {
+  Users,
+  Car as CarIcon,
+  MapPin,
+  Shield,
+  ArrowRight,
+  Fuel,
+  Settings,
+  Users as SeatsIcon,
+  Search,
+  Quote,
+  Star,
+} from "lucide-react";
 
 export default function Home() {
   const { data: cars, isLoading } = useQuery<Car[]>({
@@ -18,6 +30,59 @@ export default function Home() {
   });
 
   const featuredCars = cars?.slice(0, 3) || [];
+  const testimonials = [
+    {
+      name: "Ayumi Takahashi",
+      role: "Creative Director, Tokyo",
+      quote:
+        "Booking through Tokyo Drive was seamless. The concierge delivery and onboard Wi-Fi let me prep for meetings on the go.",
+      trip: "Mercedes-Benz S-Class · 4-day executive tour",
+    },
+    {
+      name: "Daniel Romero",
+      role: "Travel Vlogger, Barcelona",
+      quote:
+        "The Porsche 911 handled the Hakone turns like a dream. Customer service stayed on call the whole weekend.",
+      trip: "Porsche 911 · Fuji speed run",
+    },
+    {
+      name: "Sora Lee",
+      role: "Event Planner, Seoul",
+      quote:
+        "I needed three SUVs for a VIP wedding party. They handled scheduling, décor, even the champagne coolers.",
+      trip: "Range Rover Evoque · Luxury wedding weekend",
+    },
+  ];
+
+  const popularTrips = [
+    {
+      title: "Alpine Escape",
+      route: "Tokyo → Hakuba → Karuizawa → Tokyo",
+      distance: "560 km • 4 days",
+      description:
+        "Switch between powder runs and fireside fondue. Our concierge stocks the roof box and heated blankets.",
+      image:
+        "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=80",
+    },
+    {
+      title: "Neon Coast Cruise",
+      route: "Osaka → Awaji Island → Kobe",
+      distance: "210 km • 2 days",
+      description:
+        "Sunrise over Seto Inland Sea, Michelin izakayas at night. Includes toll pass + curated playlist.",
+      image:
+        "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=1200&q=80",
+    },
+    {
+      title: "Volcanic Skyline",
+      route: "Kyoto → Mt. Aso → Beppu → Fukuoka",
+      distance: "720 km • 5 days",
+      description:
+        "Private onsen bookings, drone-ready scenic pullouts, and a backup EV charger in the trunk.",
+      image:
+        "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80",
+    },
+  ];
 
   return (
     <div>
@@ -177,6 +242,73 @@ export default function Home() {
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="py-16 md:py-24 px-6 bg-muted/40">
+        <div className="max-w-7xl mx-auto grid gap-12 lg:grid-cols-2">
+          <div>
+            <div className="mb-6">
+              <h2 className="text-3xl md:text-4xl font-bold">Loved by road trippers</h2>
+              <p className="text-muted-foreground">
+                Verified guests share how they use Tokyo Drive for conferences, content shoots, and weekend escapes.
+              </p>
+            </div>
+            <div className="space-y-4">
+              {testimonials.map((testimonial) => (
+                <Card key={testimonial.name} className="p-5 h-full">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Quote className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-semibold">{testimonial.name}</p>
+                      <p className="text-sm text-muted-foreground">{testimonial.role}</p>
+                    </div>
+                  </div>
+                  <p className="text-base leading-relaxed mb-3">“{testimonial.quote}”</p>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    {testimonial.trip}
+                  </p>
+                </Card>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div className="mb-6">
+              <h2 className="text-3xl md:text-4xl font-bold">Popular Trips</h2>
+              <p className="text-muted-foreground">
+                Curated itineraries complete with charging stops, scenic cafes, and concierge support.
+              </p>
+            </div>
+            <div className="space-y-4">
+              {popularTrips.map((trip) => (
+                <Card key={trip.title} className="overflow-hidden">
+                  <div className="aspect-video overflow-hidden">
+                    <img
+                      src={getThumbnailUrl(trip.image, 900)}
+                      alt={trip.title}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="p-5 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xl font-semibold">{trip.title}</h3>
+                      <div className="flex items-center gap-1 text-amber-500">
+                        {[...Array(5)].map((_, i) => (
+                          <Star key={i} className="h-4 w-4 fill-current" />
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{trip.route}</p>
+                    <p className="text-sm text-muted-foreground">{trip.distance}</p>
+                    <p className="text-base">{trip.description}</p>
+                  </div>
+                </Card>
+              ))}
+            </div>
           </div>
         </div>
       </section>

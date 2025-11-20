@@ -11,6 +11,8 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Cars from "@/pages/cars";
 import CarDetail from "@/pages/car-detail";
+import About from "@/pages/about";
+import Contact from "@/pages/contact";
 import AdminDashboard from "@/pages/admin/dashboard";
 import CarsList from "@/pages/admin/cars-list";
 import CarForm from "@/pages/admin/car-form";
@@ -59,6 +61,8 @@ function PublicRouter() {
           <Route path="/" component={Home} />
           <Route path="/cars" component={Cars} />
           <Route path="/cars/:slug" component={CarDetail} />
+          <Route path="/about" component={About} />
+          <Route path="/contact" component={Contact} />
           <Route component={NotFound} />
         </Switch>
       </main>

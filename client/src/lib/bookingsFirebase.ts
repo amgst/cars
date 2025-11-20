@@ -57,3 +57,19 @@ export async function updateBookingStatusFirebase(
   await updateDoc(docRef, { status });
 }
 
+export async function getBookingsByCarFirebase(carId: string): Promise<Booking[]> {
+  const q = query(
+    collection(db, BOOKINGS_COLLECTION),
+    where("carId", "==", carId),
+    orderBy("startDate", "asc"),
+  );
+  const snap = await getDocs(q);
+  const bookings: Booking[] = [];
+
+  snap.forEach((docSnap) => {
+    bookings.push(docSnap.data() as Booking);
+  });
+
+  return bookings;
+}
+

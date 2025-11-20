@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Car } from "@shared/schema";
@@ -8,28 +8,79 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Fuel, Settings, Users as SeatsIcon, Search, SlidersHorizontal } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
+import { Fuel, Settings, Users as SeatsIcon, Search, SlidersHorizontal, ArrowUpAZ } from "lucide-react";
 import { getAllCarsFirebase } from "@/lib/carsFirebase";
+import { getThumbnailUrl } from "@/lib/imageUtils";
 import { getThumbnailUrl } from "@/lib/imageUtils";
 
 export default function Cars() {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [transmissionFilter, setTransmissionFilter] = useState<string>("all");
+  const [seatsFilter, setSeatsFilter] = useState<string>("all");
+  const [sortOption, setSortOption] = useState<string>("recommended");
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000]);
 
   const { data: cars, isLoading } = useQuery<Car[]>({
     queryKey: ["cars"],
     queryFn: getAllCarsFirebase,
   });
 
+  const priceBounds = useMemo(() => {
+    if (!cars || cars.length === 0) {
+      return { min: 0, max: 1000 };
+    }
+    const prices = cars.map((car) => car.pricePerDay);
+    return {
+      min: Math.min(...prices),
+      max: Math.max(...prices),
+    };
+  }, [cars]);
+
+  useEffect(() => {
+    if (cars && cars.length > 0) {
+      setPriceRange([priceBounds.min, priceBounds.max]);
+    }
+  }, [cars, priceBounds.min, priceBounds.max]);
+
+  const seatOptions = useMemo(() => {
+    if (!cars) return [];
+    const unique = new Set<number>();
+    cars.forEach((car) => unique.add(car.seats));
+    return Array.from(unique).sort((a, b) => a - b);
+  }, [cars]);
+
   const filteredCars = cars?.filter((car) => {
     const matchesSearch = car.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       car.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = categoryFilter === "all" || car.category === categoryFilter;
     const matchesTransmission = transmissionFilter === "all" || car.transmission === transmissionFilter;
+    const matchesSeats = seatsFilter === "all" || car.seats === Number(seatsFilter);
+    const matchesPrice =
+      car.pricePerDay >= priceRange[0] && car.pricePerDay <= priceRange[1];
     
-    return matchesSearch && matchesCategory && matchesTransmission;
+    return matchesSearch && matchesCategory && matchesTransmission && matchesSeats && matchesPrice;
   }) || [];
+
+  const sortedCars = useMemo(() => {
+    const list = [...filteredCars];
+    list.sort((a, b) => {
+      switch (sortOption) {
+        case "price-asc":
+          return a.pricePerDay - b.pricePerDay;
+        case "price-desc":
+          return b.pricePerDay - a.pricePerDay;
+        case "seats-desc":
+          return b.seats - a.seats;
+        case "newest":
+          return b.year - a.year;
+        default:
+          return a.name.localeCompare(b.name);
+      }
+    });
+    return list;
+  }, [filteredCars, sortOption]);
 
   const categories = Array.from(new Set(cars?.map((car) => car.category) || []));
   const transmissions = Array.from(new Set(cars?.map((car) => car.transmission) || []));
@@ -46,8 +97,8 @@ export default function Cars() {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-12">
-        <div className="mb-8">
-          <div className="flex flex-col md:flex-row gap-4 items-center">
+        <div className="mb-8 space-y-6">
+          <div className="flex flex-col xl:flex-row gap-4 items-center">
             <div className="relative flex-1 w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input
@@ -59,7 +110,7 @@ export default function Cars() {
                 data-testid="input-search-cars"
               />
             </div>
-            <div className="flex gap-4 w-full md:w-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex gap-4 w-full xl:w-auto">
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                 <SelectTrigger className="w-full md:w-[180px]" data-testid="select-category-filter">
                   <SlidersHorizontal className="h-4 w-4 mr-2" />
@@ -89,7 +140,67 @@ export default function Cars() {
                   ))}
                 </SelectContent>
               </Select>
+
+              <Select value={seatsFilter} onValueChange={setSeatsFilter}>
+                <SelectTrigger className="w-full md:w-[160px]" data-testid="select-seats-filter">
+                  <SeatsIcon className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Seats" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Seats</SelectItem>
+                  {seatOptions.map((seat) => (
+                    <SelectItem key={seat} value={String(seat)}>
+                      {seat}+ seats
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={sortOption} onValueChange={setSortOption}>
+                <SelectTrigger className="w-full md:w-[180px]" data-testid="select-sort">
+                  <ArrowUpAZ className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="recommended">Recommended</SelectItem>
+                  <SelectItem value="price-asc">Price: Low to High</SelectItem>
+                  <SelectItem value="price-desc">Price: High to Low</SelectItem>
+                  <SelectItem value="seats-desc">Seats: Most to Least</SelectItem>
+                  <SelectItem value="newest">Model Year: Newest</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSearchTerm("");
+                  setCategoryFilter("all");
+                  setTransmissionFilter("all");
+                  setSeatsFilter("all");
+                  setSortOption("recommended");
+                  setPriceRange([priceBounds.min, priceBounds.max]);
+                }}
+              >
+                Reset
+              </Button>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <span>Price range</span>
+              <span>
+                ${priceRange[0].toLocaleString()} – ${priceRange[1].toLocaleString()}
+              </span>
+            </div>
+            <Slider
+              value={priceRange}
+              min={Math.max(0, priceBounds.min - 20)}
+              max={priceBounds.max + 20}
+              step={5}
+              className="w-full"
+              onValueChange={(value) => setPriceRange(value as [number, number])}
+            />
           </div>
         </div>
 
@@ -106,7 +217,7 @@ export default function Cars() {
               </Card>
             ))}
           </div>
-        ) : filteredCars.length === 0 ? (
+        ) : sortedCars.length === 0 ? (
           <div className="text-center py-16">
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
               <Search className="h-8 w-8 text-muted-foreground" />
@@ -120,6 +231,9 @@ export default function Cars() {
                 setSearchTerm("");
                 setCategoryFilter("all");
                 setTransmissionFilter("all");
+                setSeatsFilter("all");
+                setSortOption("recommended");
+                setPriceRange([priceBounds.min, priceBounds.max]);
               }}
               variant="outline"
               data-testid="button-clear-filters"
@@ -130,10 +244,10 @@ export default function Cars() {
         ) : (
           <>
             <div className="mb-6 text-sm text-muted-foreground">
-              Showing {filteredCars.length} {filteredCars.length === 1 ? "vehicle" : "vehicles"}
+              Showing {sortedCars.length} {sortedCars.length === 1 ? "vehicle" : "vehicles"}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filteredCars.map((car) => (
+              {sortedCars.map((car) => (
                 <Link key={car.id} href={`/cars/${car.slug}`}>
                   <Card className="overflow-hidden hover-elevate active-elevate-2 cursor-pointer h-full" data-testid={`card-car-${car.id}`}>
                     <div className="aspect-[4/3] overflow-hidden">

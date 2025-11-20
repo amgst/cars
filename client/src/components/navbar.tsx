@@ -33,6 +33,22 @@ export function Navbar() {
                 Our Fleet
               </Button>
             </Link>
+            <Link href="/about">
+              <Button
+                variant={location === "/about" ? "default" : "ghost"}
+                data-testid="link-about"
+              >
+                About Us
+              </Button>
+            </Link>
+            <Link href="/contact">
+              <Button
+                variant={location === "/contact" ? "default" : "ghost"}
+                data-testid="link-contact"
+              >
+                Contact
+              </Button>
+            </Link>
             <Link href="/admin">
               <Button variant="outline" data-testid="link-admin">
                 Admin Panel

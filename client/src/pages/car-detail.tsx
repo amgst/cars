@@ -1,7 +1,7 @@
 import { useParams, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
-import { Car } from "@shared/schema";
+import { useState, useEffect, useMemo } from "react";
+import { Car, Booking } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +21,7 @@ import {
   Users as SeatsIcon,
   Luggage,
   DoorOpen,
-  Calendar,
+  Calendar as CalendarIcon,
   Navigation,
   Bluetooth,
   Wind,
@@ -32,6 +32,9 @@ import { getCarBySlugFirebase } from "@/lib/carsFirebase";
 import { BookingForm } from "@/components/booking-form";
 import { getOptimizedImageUrl, getThumbnailUrl } from "@/lib/imageUtils";
 import { getPricingSettings } from "@/lib/pricingSettingsFirebase";
+import { getBookingsByCarFirebase } from "@/lib/bookingsFirebase";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
 
 export default function CarDetail() {
   const { slug } = useParams();
@@ -52,6 +55,12 @@ export default function CarDetail() {
     queryFn: () => getPricingSettings(),
   });
 
+  const { data: carBookings } = useQuery<Booking[]>({
+    queryKey: ["bookingsByCar", car?.id],
+    enabled: !!car?.id,
+    queryFn: () => getBookingsByCarFirebase(car!.id),
+  });
+
   // Combine main image with additional images, filter out empty strings and duplicates
   // This needs to be calculated before early returns to avoid hook order issues
   const allImages = car
@@ -64,6 +73,19 @@ export default function CarDetail() {
   const uniqueImages = allImages.filter(
     (image, index) => allImages.indexOf(image) === index,
   );
+
+  const bookedRanges = useMemo(() => {
+    if (!carBookings) return [];
+    return carBookings.map((booking) => ({
+      from: new Date(booking.startDate),
+      to: new Date(booking.endDate),
+    }));
+  }, [carBookings]);
+
+  const upcomingBookings = useMemo(() => {
+    if (!carBookings) return [];
+    return carBookings.slice(0, 3);
+  }, [carBookings]);
 
   // Use pricing settings from Firebase, fallback to defaults
   const insuranceRatePerDay = pricingSettings?.insuranceRatePerDay ?? 25;
@@ -268,7 +290,7 @@ export default function CarDetail() {
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                     <span className="text-muted-foreground">
                       Model year {car.year}
                     </span>
@@ -528,6 +550,56 @@ export default function CarDetail() {
                   Doors
                 </p>
                 <p className="font-semibold">{car.doors}</p>
+              </div>
+            </div>
+          </Card>
+
+          {/* Availability Calendar */}
+          <Card className="mt-4 md:mt-8">
+            <div className="p-6 flex flex-col gap-6 md:grid md:grid-cols-2">
+              <div>
+                <h2 className="text-xl md:text-2xl font-semibold mb-2">Availability Calendar</h2>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Dates marked in red are already booked for this vehicle.
+                </p>
+                <Calendar
+                  mode="single"
+                  numberOfMonths={2}
+                  disabled={bookedRanges}
+                  modifiers={{ booked: bookedRanges }}
+                  modifiersClassNames={{ booked: "bg-destructive text-destructive-foreground rounded-full" }}
+                  className="rounded-md border"
+                />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Upcoming Bookings</h3>
+                {upcomingBookings.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    This vehicle is currently wide open. Be the first to request it for your dates.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {upcomingBookings.map((booking) => (
+                      <div
+                        key={booking.id}
+                        className="p-3 rounded-lg border flex items-center justify-between"
+                      >
+                        <div>
+                          <p className="font-medium text-sm">
+                            {format(new Date(booking.startDate), "MMM d")} –{" "}
+                            {format(new Date(booking.endDate), "MMM d, yyyy")}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {booking.firstName} {booking.lastName}
+                          </p>
+                        </div>
+                        <Badge variant="secondary" className="text-xs capitalize">
+                          {booking.status}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </Card>
