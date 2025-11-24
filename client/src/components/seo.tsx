@@ -14,6 +14,21 @@ export function SEO({ title, description, image, type = "website", noindex = fal
   const [location] = useLocation();
   const { settings } = useWebsiteSettings();
 
+  const getAbsoluteUrl = (url?: string | null) => {
+    if (!url) return undefined;
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+      return url;
+    }
+    if (typeof window !== "undefined") {
+      try {
+        return new URL(url, window.location.origin).toString();
+      } catch {
+        return url;
+      }
+    }
+    return url;
+  };
+
   useEffect(() => {
     if (!settings) return;
 
@@ -56,7 +71,10 @@ export function SEO({ title, description, image, type = "website", noindex = fal
     // Update Open Graph tags
     const ogTitle = title || settings.websiteName || "Premium Car Rentals Australia";
     const ogDesc = description || settings.metaDescription || settings.description || "";
-    const ogImage = image || settings.logo || "/og-image.jpg";
+    const defaultOgImage =
+      getAbsoluteUrl(settings.logo) ||
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=80";
+    const ogImage = getAbsoluteUrl(image) || defaultOgImage;
 
     const updateOGTag = (property: string, content: string) => {
       let tag = document.querySelector<HTMLMetaElement>(`meta[property="${property}"]`);
@@ -72,7 +90,11 @@ export function SEO({ title, description, image, type = "website", noindex = fal
     updateOGTag("og:description", ogDesc);
     updateOGTag("og:url", canonicalUrl);
     updateOGTag("og:type", type);
-    updateOGTag("og:image", ogImage);
+    if (ogImage) {
+      updateOGTag("og:image", ogImage);
+      updateOGTag("og:image:width", "1200");
+      updateOGTag("og:image:height", "630");
+    }
     updateOGTag("og:locale", "en_AU");
     if (settings.websiteName) {
       updateOGTag("og:site_name", settings.websiteName);
@@ -92,7 +114,9 @@ export function SEO({ title, description, image, type = "website", noindex = fal
     updateTwitterTag("twitter:card", "summary_large_image");
     updateTwitterTag("twitter:title", ogTitle);
     updateTwitterTag("twitter:description", ogDesc);
-    updateTwitterTag("twitter:image", ogImage);
+    if (ogImage) {
+      updateTwitterTag("twitter:image", ogImage);
+    }
 
     // Robots meta tag
     if (noindex) {
