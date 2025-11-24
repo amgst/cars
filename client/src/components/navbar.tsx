@@ -1,13 +1,19 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Car } from "lucide-react";
+import { Car, Menu, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useWebsiteSettings } from "@/hooks/use-website-settings";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 export function Navbar() {
   const [location] = useLocation();
   const { settings } = useWebsiteSettings();
   const [logoError, setLogoError] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const websiteName = settings?.websiteName || "Tokyo Drive";
   const logoUrl = settings?.logo;
@@ -17,9 +23,27 @@ export function Navbar() {
     setLogoError(false);
   }, [logoUrl]);
 
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location]);
+
+  const navLinks = [
+    { href: "/", label: "Home", testId: "link-home" },
+    { href: "/cars", label: "Our Fleet", testId: "link-cars" },
+    { href: "/about", label: "About Us", testId: "link-about" },
+    { href: "/contact", label: "Contact", testId: "link-contact" },
+  ];
+
+  const isActive = (href: string) => {
+    if (href === "/") return location === "/";
+    if (href === "/cars") return location.startsWith("/cars") && !location.startsWith("/admin");
+    return location === href;
+  };
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="max-w-7xl mx-auto px-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-16">
           <Link href="/">
             <div className="flex items-center gap-2 cursor-pointer hover-elevate px-3 py-2 rounded-md active-elevate-2">
@@ -27,55 +51,91 @@ export function Navbar() {
                 <img 
                   src={logoUrl} 
                   alt={websiteName} 
-                  className="h-6 w-auto object-contain"
+                  className="h-5 sm:h-6 w-auto object-contain"
                   onError={() => setLogoError(true)}
                 />
               ) : (
-                <Car className="h-6 w-6" />
+                <Car className="h-5 sm:h-6 w-5 sm:w-6" />
               )}
-              <span className="text-xl font-bold">{websiteName}</span>
+              <span className="text-lg sm:text-xl font-bold truncate max-w-[120px] sm:max-w-none">{websiteName}</span>
             </div>
           </Link>
 
-          <div className="flex items-center gap-6">
-            <Link href="/">
-              <Button
-                variant={location === "/" ? "default" : "ghost"}
-                data-testid="link-home"
-              >
-                Home
-              </Button>
-            </Link>
-            <Link href="/cars">
-              <Button
-                variant={location.startsWith("/cars") && !location.startsWith("/admin") ? "default" : "ghost"}
-                data-testid="link-cars"
-              >
-                Our Fleet
-              </Button>
-            </Link>
-            <Link href="/about">
-              <Button
-                variant={location === "/about" ? "default" : "ghost"}
-                data-testid="link-about"
-              >
-                About Us
-              </Button>
-            </Link>
-            <Link href="/contact">
-              <Button
-                variant={location === "/contact" ? "default" : "ghost"}
-                data-testid="link-contact"
-              >
-                Contact
-              </Button>
-            </Link>
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-4 lg:gap-6">
+            {navLinks.map((link) => (
+              <Link key={link.href} href={link.href}>
+                <Button
+                  variant={isActive(link.href) ? "default" : "ghost"}
+                  size="sm"
+                  data-testid={link.testId}
+                >
+                  {link.label}
+                </Button>
+              </Link>
+            ))}
             <Link href="/admin">
-              <Button variant="outline" data-testid="link-admin">
+              <Button variant="outline" size="sm" data-testid="link-admin">
                 Admin Panel
               </Button>
             </Link>
           </div>
+
+          {/* Mobile Menu Button */}
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="md:hidden"
+                data-testid="button-mobile-menu"
+              >
+                <Menu className="h-6 w-6" />
+                <span className="sr-only">Open menu</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+              <div className="flex flex-col gap-4 mt-8">
+                <div className="flex items-center gap-2 mb-4 pb-4 border-b">
+                  {logoUrl && !logoError ? (
+                    <img 
+                      src={logoUrl} 
+                      alt={websiteName} 
+                      className="h-6 w-auto object-contain"
+                      onError={() => setLogoError(true)}
+                    />
+                  ) : (
+                    <Car className="h-6 w-6" />
+                  )}
+                  <span className="text-xl font-bold">{websiteName}</span>
+                </div>
+                {navLinks.map((link) => (
+                  <Link key={link.href} href={link.href}>
+                    <Button
+                      variant={isActive(link.href) ? "default" : "ghost"}
+                      className="w-full justify-start"
+                      size="lg"
+                      data-testid={`mobile-${link.testId}`}
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      {link.label}
+                    </Button>
+                  </Link>
+                ))}
+                <Link href="/admin">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    size="lg"
+                    data-testid="mobile-link-admin"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Admin Panel
+                  </Button>
+                </Link>
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
     </nav>
