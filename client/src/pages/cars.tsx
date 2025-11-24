@@ -12,12 +12,25 @@ import { Slider } from "@/components/ui/slider";
 import { Fuel, Settings, Users as SeatsIcon, Search, SlidersHorizontal, ArrowUpAZ } from "lucide-react";
 import { getAllCarsFirebase } from "@/lib/carsFirebase";
 import { getThumbnailUrl } from "@/lib/imageUtils";
-import { getThumbnailUrl } from "@/lib/imageUtils";
+import { SEO } from "@/components/seo";
 
 export default function Cars() {
+  // Initialize filters from URL parameters
+  const getInitialFilters = () => {
+    if (typeof window === "undefined") {
+      return { category: "all", transmission: "all" };
+    }
+    const params = new URLSearchParams(window.location.search);
+    return {
+      category: params.get("category") || "all",
+      transmission: params.get("transmission") || "all",
+    };
+  };
+
+  const initialFilters = getInitialFilters();
   const [searchTerm, setSearchTerm] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
-  const [transmissionFilter, setTransmissionFilter] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>(initialFilters.category);
+  const [transmissionFilter, setTransmissionFilter] = useState<string>(initialFilters.transmission);
   const [seatsFilter, setSeatsFilter] = useState<string>("all");
   const [sortOption, setSortOption] = useState<string>("recommended");
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000]);
@@ -44,6 +57,15 @@ export default function Cars() {
     }
   }, [cars, priceBounds.min, priceBounds.max]);
 
+  // Update filters when URL parameters change
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const category = params.get("category");
+    const transmission = params.get("transmission");
+    if (category) setCategoryFilter(category);
+    if (transmission) setTransmissionFilter(transmission);
+  }, []);
+
   const seatOptions = useMemo(() => {
     if (!cars) return [];
     const unique = new Set<number>();
@@ -54,8 +76,8 @@ export default function Cars() {
   const filteredCars = cars?.filter((car) => {
     const matchesSearch = car.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       car.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = categoryFilter === "all" || car.category === categoryFilter;
-    const matchesTransmission = transmissionFilter === "all" || car.transmission === transmissionFilter;
+    const matchesCategory = categoryFilter === "all" || car.category.toLowerCase() === categoryFilter.toLowerCase();
+    const matchesTransmission = transmissionFilter === "all" || car.transmission.toLowerCase() === transmissionFilter.toLowerCase();
     const matchesSeats = seatsFilter === "all" || car.seats === Number(seatsFilter);
     const matchesPrice =
       car.pricePerDay >= priceRange[0] && car.pricePerDay <= priceRange[1];
@@ -85,8 +107,53 @@ export default function Cars() {
   const categories = Array.from(new Set(cars?.map((car) => car.category) || []));
   const transmissions = Array.from(new Set(cars?.map((car) => car.transmission) || []));
 
+  // Normalize category filter to match database format (case-insensitive matching)
+  useEffect(() => {
+    if (cars && categories.length > 0 && categoryFilter !== "all") {
+      // Check if current categoryFilter value exists in categories (case-insensitive)
+      const categoryExists = categories.some(
+        (cat) => cat.toLowerCase() === categoryFilter.toLowerCase()
+      );
+      
+      // If it doesn't match exactly, find the normalized version
+      if (!categoryExists || !categories.includes(categoryFilter)) {
+        const normalizedCategory = categories.find(
+          (cat) => cat.toLowerCase() === categoryFilter.toLowerCase()
+        );
+        if (normalizedCategory) {
+          setCategoryFilter(normalizedCategory);
+        }
+      }
+    }
+  }, [cars, categories]);
+
+  // Normalize transmission filter to match database format (case-insensitive matching)
+  useEffect(() => {
+    if (cars && transmissions.length > 0 && transmissionFilter !== "all") {
+      // Check if current transmissionFilter value exists in transmissions (case-insensitive)
+      const transmissionExists = transmissions.some(
+        (trans) => trans.toLowerCase() === transmissionFilter.toLowerCase()
+      );
+      
+      // If it doesn't match exactly, find the normalized version
+      if (!transmissionExists || !transmissions.includes(transmissionFilter)) {
+        const normalizedTransmission = transmissions.find(
+          (trans) => trans.toLowerCase() === transmissionFilter.toLowerCase()
+        );
+        if (normalizedTransmission) {
+          setTransmissionFilter(normalizedTransmission);
+        }
+      }
+    }
+  }, [cars, transmissions]);
+
   return (
-    <div className="min-h-screen bg-background">
+    <>
+      <SEO 
+        title="Car Rental Fleet - Premium Vehicles Australia"
+        description="Browse our premium car rental fleet in Australia. Luxury sedans, SUVs, sports cars, and electric vehicles available for rent. Best rates and flexible booking options across Sydney, Melbourne, Brisbane, Perth, and Adelaide."
+      />
+      <div className="min-h-screen bg-background">
       <div className="bg-card border-b">
         <div className="max-w-7xl mx-auto px-6 py-12">
           <h1 className="text-5xl font-bold mb-4">Our Fleet</h1>
@@ -305,5 +372,6 @@ export default function Cars() {
         )}
       </div>
     </div>
+    </>
   );
 }

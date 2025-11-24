@@ -1,9 +1,21 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Car } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useWebsiteSettings } from "@/hooks/use-website-settings";
 
 export function Navbar() {
   const [location] = useLocation();
+  const { settings } = useWebsiteSettings();
+  const [logoError, setLogoError] = useState(false);
+
+  const websiteName = settings?.websiteName || "Tokyo Drive";
+  const logoUrl = settings?.logo;
+
+  // Reset logo error when logo URL changes
+  useEffect(() => {
+    setLogoError(false);
+  }, [logoUrl]);
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -11,8 +23,17 @@ export function Navbar() {
         <div className="flex items-center justify-between h-16">
           <Link href="/">
             <div className="flex items-center gap-2 cursor-pointer hover-elevate px-3 py-2 rounded-md active-elevate-2">
-              <Car className="h-6 w-6" />
-              <span className="text-xl font-bold">Tokyo Drive</span>
+              {logoUrl && !logoError ? (
+                <img 
+                  src={logoUrl} 
+                  alt={websiteName} 
+                  className="h-6 w-auto object-contain"
+                  onError={() => setLogoError(true)}
+                />
+              ) : (
+                <Car className="h-6 w-6" />
+              )}
+              <span className="text-xl font-bold">{websiteName}</span>
             </div>
           </Link>
 

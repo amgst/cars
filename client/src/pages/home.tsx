@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Car } from "@shared/schema";
@@ -9,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import heroImage from "@assets/generated_images/Hero_banner_luxury_car_0ff28a2c.png";
 import { getAllCarsFirebase } from "@/lib/carsFirebase";
 import { getOptimizedImageUrl, getThumbnailUrl } from "@/lib/imageUtils";
+import { SEO } from "@/components/seo";
 import {
   Users,
   Car as CarIcon,
@@ -19,41 +21,18 @@ import {
   Settings,
   Users as SeatsIcon,
   Search,
-  Quote,
   Star,
 } from "lucide-react";
 
 export default function Home() {
+  const [heroCategory, setHeroCategory] = useState<string>("all");
+  const [heroTransmission, setHeroTransmission] = useState<string>("all");
   const { data: cars, isLoading } = useQuery<Car[]>({
     queryKey: ["cars"],
     queryFn: getAllCarsFirebase,
   });
 
   const featuredCars = cars?.slice(0, 3) || [];
-  const testimonials = [
-    {
-      name: "Ayumi Takahashi",
-      role: "Creative Director, Tokyo",
-      quote:
-        "Booking through Tokyo Drive was seamless. The concierge delivery and onboard Wi-Fi let me prep for meetings on the go.",
-      trip: "Mercedes-Benz S-Class · 4-day executive tour",
-    },
-    {
-      name: "Daniel Romero",
-      role: "Travel Vlogger, Barcelona",
-      quote:
-        "The Porsche 911 handled the Hakone turns like a dream. Customer service stayed on call the whole weekend.",
-      trip: "Porsche 911 · Fuji speed run",
-    },
-    {
-      name: "Sora Lee",
-      role: "Event Planner, Seoul",
-      quote:
-        "I needed three SUVs for a VIP wedding party. They handled scheduling, décor, even the champagne coolers.",
-      trip: "Range Rover Evoque · Luxury wedding weekend",
-    },
-  ];
-
   const popularTrips = [
     {
       title: "Alpine Escape",
@@ -85,7 +64,12 @@ export default function Home() {
   ];
 
   return (
-    <div>
+    <>
+      <SEO 
+        title="Premium Car Rentals Australia"
+        description="Australia's premier car rental service offering luxury vehicles, premium sedans, SUVs, and sports cars. Book your perfect vehicle for your Australian adventure with exceptional service and competitive rates."
+      />
+      <div>
       <section className="relative h-screen min-h-[600px] flex items-center justify-center">
         <div
           className="absolute inset-0 bg-cover bg-center"
@@ -96,10 +80,10 @@ export default function Home() {
         
         <div className="relative z-10 text-center px-6 max-w-5xl mx-auto">
           <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 tracking-tight">
-            Premium Car Rentals
+            Premium Car Rentals Australia
           </h1>
           <p className="text-xl md:text-2xl text-white/90 mb-8 leading-relaxed max-w-2xl mx-auto">
-            Experience luxury and performance with our exclusive collection of vehicles
+            Experience luxury and performance with Australia's finest collection of premium vehicles. Available across Sydney, Melbourne, Brisbane, Perth, and Adelaide.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
             <Link href="/cars">
@@ -124,11 +108,12 @@ export default function Home() {
 
           <Card className="p-6 bg-background/95 backdrop-blur-sm border-background/20">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Select>
+              <Select value={heroCategory} onValueChange={setHeroCategory}>
                 <SelectTrigger data-testid="select-hero-category">
                   <SelectValue placeholder="Select Category" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
                   <SelectItem value="sedan">Sedan</SelectItem>
                   <SelectItem value="suv">SUV</SelectItem>
                   <SelectItem value="sports">Sports</SelectItem>
@@ -137,17 +122,23 @@ export default function Home() {
                 </SelectContent>
               </Select>
 
-              <Select>
+              <Select value={heroTransmission} onValueChange={setHeroTransmission}>
                 <SelectTrigger data-testid="select-hero-transmission">
                   <SelectValue placeholder="Transmission" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
                   <SelectItem value="automatic">Automatic</SelectItem>
                   <SelectItem value="manual">Manual</SelectItem>
                 </SelectContent>
               </Select>
 
-              <Link href="/cars">
+              <Link href={(() => {
+                const params = new URLSearchParams();
+                if (heroCategory !== "all") params.set("category", heroCategory);
+                if (heroTransmission !== "all") params.set("transmission", heroTransmission);
+                return `/cars${params.toString() ? `?${params.toString()}` : ""}`;
+              })()}>
                 <Button className="w-full" size="lg" data-testid="button-hero-search">
                   <Search className="mr-2 h-5 w-5" />
                   Search Vehicles
@@ -247,68 +238,38 @@ export default function Home() {
       </section>
 
       <section className="py-16 md:py-24 px-6 bg-muted/40">
-        <div className="max-w-7xl mx-auto grid gap-12 lg:grid-cols-2">
-          <div>
-            <div className="mb-6">
-              <h2 className="text-3xl md:text-4xl font-bold">Loved by road trippers</h2>
-              <p className="text-muted-foreground">
-                Verified guests share how they use Tokyo Drive for conferences, content shoots, and weekend escapes.
-              </p>
-            </div>
-            <div className="space-y-4">
-              {testimonials.map((testimonial) => (
-                <Card key={testimonial.name} className="p-5 h-full">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Quote className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-semibold">{testimonial.name}</p>
-                      <p className="text-sm text-muted-foreground">{testimonial.role}</p>
-                    </div>
-                  </div>
-                  <p className="text-base leading-relaxed mb-3">“{testimonial.quote}”</p>
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                    {testimonial.trip}
-                  </p>
-                </Card>
-              ))}
-            </div>
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-6">
+            <h2 className="text-3xl md:text-4xl font-bold">Popular Trips</h2>
+            <p className="text-muted-foreground">
+              Curated itineraries complete with charging stops, scenic cafes, and concierge support.
+            </p>
           </div>
-
-          <div>
-            <div className="mb-6">
-              <h2 className="text-3xl md:text-4xl font-bold">Popular Trips</h2>
-              <p className="text-muted-foreground">
-                Curated itineraries complete with charging stops, scenic cafes, and concierge support.
-              </p>
-            </div>
-            <div className="space-y-4">
-              {popularTrips.map((trip) => (
-                <Card key={trip.title} className="overflow-hidden">
-                  <div className="aspect-video overflow-hidden">
-                    <img
-                      src={getThumbnailUrl(trip.image, 900)}
-                      alt={trip.title}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="p-5 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-xl font-semibold">{trip.title}</h3>
-                      <div className="flex items-center gap-1 text-amber-500">
-                        {[...Array(5)].map((_, i) => (
-                          <Star key={i} className="h-4 w-4 fill-current" />
-                        ))}
-                      </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {popularTrips.map((trip) => (
+              <Card key={trip.title} className="overflow-hidden">
+                <div className="aspect-video overflow-hidden">
+                  <img
+                    src={getThumbnailUrl(trip.image, 900)}
+                    alt={trip.title}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="p-5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xl font-semibold">{trip.title}</h3>
+                    <div className="flex items-center gap-1 text-amber-500">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className="h-4 w-4 fill-current" />
+                      ))}
                     </div>
-                    <p className="text-sm text-muted-foreground">{trip.route}</p>
-                    <p className="text-sm text-muted-foreground">{trip.distance}</p>
-                    <p className="text-base">{trip.description}</p>
                   </div>
-                </Card>
-              ))}
-            </div>
+                  <p className="text-sm text-muted-foreground">{trip.route}</p>
+                  <p className="text-sm text-muted-foreground">{trip.distance}</p>
+                  <p className="text-base">{trip.description}</p>
+                </div>
+              </Card>
+            ))}
           </div>
         </div>
       </section>
@@ -447,5 +408,6 @@ export default function Home() {
         </div>
       </section>
     </div>
+    </>
   );
 }

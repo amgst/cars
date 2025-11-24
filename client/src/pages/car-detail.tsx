@@ -35,6 +35,7 @@ import { getPricingSettings } from "@/lib/pricingSettingsFirebase";
 import { getBookingsByCarFirebase } from "@/lib/bookingsFirebase";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
+import { SEO } from "@/components/seo";
 
 export default function CarDetail() {
   const { slug } = useParams();
@@ -113,11 +114,19 @@ export default function CarDetail() {
     }
   }, [car?.id, uniqueImages.length]);
 
+  // Generate SEO data for this car
+  const seoTitle = car ? `${car.name} - Car Rental Australia` : "Car Details - Premium Car Rentals Australia";
+  const seoDescription = car 
+    ? `Rent ${car.name} in Australia. ${car.description} Starting at $${car.pricePerDay}/day. Book now for best rates and flexible booking options.`
+    : "Browse premium car rental options in Australia";
+
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="max-w-6xl mx-auto px-6 py-12">
-          <Skeleton className="h-8 w-32 mb-8" />
+      <>
+        <SEO title="Loading Car Details" description="Premium car rental in Australia" />
+        <div className="min-h-screen bg-background">
+          <div className="max-w-6xl mx-auto px-6 py-12">
+            <Skeleton className="h-8 w-32 mb-8" />
           <Skeleton className="h-64 w-full rounded-xl mb-10" />
           <div className="grid grid-cols-2 md:grid-cols-5 gap-6 mb-12">
             {[1, 2, 3, 4, 5].map((i) => (
@@ -131,11 +140,12 @@ export default function CarDetail() {
               <Skeleton className="h-24 w-full" />
             </div>
             <Skeleton className="h-64 w-full rounded-xl" />
-          </div>
         </div>
       </div>
-    );
-  }
+    </div>
+    </>
+  );
+}
 
   if (!car) {
     return (
@@ -155,7 +165,9 @@ export default function CarDetail() {
 
 
   return (
-    <div className="bg-background">
+    <>
+      <SEO title={seoTitle} description={seoDescription} />
+      <div className="bg-background">
       {/* Hero */}
       <section className="relative h-[60vh] min-h-[420px] w-full text-white">
         <div
@@ -640,5 +652,6 @@ export default function CarDetail() {
         />
       )}
     </div>
+    </>
   );
 }

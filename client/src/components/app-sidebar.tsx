@@ -10,7 +10,8 @@ import {
   SidebarMenuItem,
   SidebarHeader,
 } from "@/components/ui/sidebar";
-import { Car, LayoutDashboard, Plus, DollarSign, CalendarDays } from "lucide-react";
+import { Car, LayoutDashboard, Plus, DollarSign, CalendarDays, Settings } from "lucide-react";
+import { useWebsiteSettings } from "@/hooks/use-website-settings";
 
 const menuItems = [
   {
@@ -34,6 +35,11 @@ const menuItems = [
     icon: DollarSign,
   },
   {
+    title: "Website Settings",
+    url: "/admin/website-settings",
+    icon: Settings,
+  },
+  {
     title: "Bookings",
     url: "/admin/bookings",
     icon: CalendarDays,
@@ -42,11 +48,14 @@ const menuItems = [
 
 export function AppSidebar() {
   const [location] = useLocation();
+  const { settings } = useWebsiteSettings();
+
+  const websiteName = settings?.websiteName || "Tokyo Drive";
 
   return (
     <Sidebar>
       <SidebarHeader className="p-6 border-b">
-        <h2 className="text-xl font-bold">Tokyo Drive</h2>
+        <h2 className="text-xl font-bold">{websiteName}</h2>
         <p className="text-sm text-muted-foreground">Admin Panel</p>
       </SidebarHeader>
       <SidebarContent>
@@ -59,7 +68,7 @@ export function AppSidebar() {
                   <SidebarMenuButton
                     asChild
                     className={
-                      location === item.url
+                      location === item.url || location.startsWith(item.url + "/")
                         ? "bg-sidebar-accent"
                         : ""
                     }

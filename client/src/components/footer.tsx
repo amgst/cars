@@ -13,8 +13,31 @@ import {
   Linkedin,
   Send
 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useWebsiteSettings } from "@/hooks/use-website-settings";
 
 export function Footer() {
+  const { settings } = useWebsiteSettings();
+  const [logoError, setLogoError] = useState(false);
+
+  const logoUrl = settings?.logo;
+
+  // Reset logo error when logo URL changes
+  useEffect(() => {
+    setLogoError(false);
+  }, [logoUrl]);
+
+  const websiteName = settings?.websiteName || "Tokyo Drive";
+  const companyName = settings?.companyName || "Tokyo Drive";
+  const description = settings?.description || "Premium car rental service with the finest vehicles and exceptional customer experience.";
+  const email = settings?.email || "info@tokyodrive.com";
+  const phone = settings?.phone || "+81 3-1234-5678";
+  const address = settings?.address || "123 Premium Avenue, Tokyo, Japan";
+  const facebookUrl = settings?.facebookUrl;
+  const twitterUrl = settings?.twitterUrl;
+  const instagramUrl = settings?.instagramUrl;
+  const linkedinUrl = settings?.linkedinUrl;
+
   return (
     <footer className="bg-card border-t">
       <div className="max-w-7xl mx-auto px-6 py-12">
@@ -22,25 +45,50 @@ export function Footer() {
           {/* Company Info */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <Car className="h-6 w-6 text-primary" />
-              <span className="text-xl font-bold">Tokyo Drive</span>
+              {logoUrl && !logoError ? (
+                <img 
+                  src={logoUrl} 
+                  alt={websiteName} 
+                  className="h-6 w-auto object-contain"
+                  onError={() => setLogoError(true)}
+                />
+              ) : (
+                <Car className="h-6 w-6 text-primary" />
+              )}
+              <span className="text-xl font-bold">{websiteName}</span>
             </div>
             <p className="text-muted-foreground">
-              Premium car rental service with the finest vehicles and exceptional customer experience.
+              {description}
             </p>
             <div className="flex gap-4">
-              <Button variant="outline" size="icon">
-                <Facebook className="h-4 w-4" />
-              </Button>
-              <Button variant="outline" size="icon">
-                <Twitter className="h-4 w-4" />
-              </Button>
-              <Button variant="outline" size="icon">
-                <Instagram className="h-4 w-4" />
-              </Button>
-              <Button variant="outline" size="icon">
-                <Linkedin className="h-4 w-4" />
-              </Button>
+              {facebookUrl && (
+                <Button variant="outline" size="icon" asChild>
+                  <a href={facebookUrl} target="_blank" rel="noopener noreferrer">
+                    <Facebook className="h-4 w-4" />
+                  </a>
+                </Button>
+              )}
+              {twitterUrl && (
+                <Button variant="outline" size="icon" asChild>
+                  <a href={twitterUrl} target="_blank" rel="noopener noreferrer">
+                    <Twitter className="h-4 w-4" />
+                  </a>
+                </Button>
+              )}
+              {instagramUrl && (
+                <Button variant="outline" size="icon" asChild>
+                  <a href={instagramUrl} target="_blank" rel="noopener noreferrer">
+                    <Instagram className="h-4 w-4" />
+                  </a>
+                </Button>
+              )}
+              {linkedinUrl && (
+                <Button variant="outline" size="icon" asChild>
+                  <a href={linkedinUrl} target="_blank" rel="noopener noreferrer">
+                    <Linkedin className="h-4 w-4" />
+                  </a>
+                </Button>
+              )}
             </div>
           </div>
 
@@ -83,20 +131,20 @@ export function Footer() {
               <li className="flex items-start gap-3">
                 <MapPin className="h-5 w-5 text-primary mt-0.5" />
                 <span className="text-muted-foreground">
-                  123 Premium Avenue, Tokyo, Japan
+                  {address}
                 </span>
               </li>
               <li className="flex items-center gap-3">
                 <Phone className="h-5 w-5 text-primary" />
-                <span className="text-muted-foreground">
-                  +81 3-1234-5678
-                </span>
+                <a href={`tel:${phone}`} className="text-muted-foreground hover:text-foreground transition-colors">
+                  {phone}
+                </a>
               </li>
               <li className="flex items-center gap-3">
                 <Mail className="h-5 w-5 text-primary" />
-                <span className="text-muted-foreground">
-                  info@tokyodrive.com
-                </span>
+                <a href={`mailto:${email}`} className="text-muted-foreground hover:text-foreground transition-colors">
+                  {email}
+                </a>
               </li>
             </ul>
           </div>
@@ -122,7 +170,7 @@ export function Footer() {
 
         <div className="border-t mt-12 pt-8 text-center">
           <p className="text-muted-foreground">
-            © {new Date().getFullYear()} Tokyo Drive. All rights reserved.
+            © {new Date().getFullYear()} {companyName}. All rights reserved.
           </p>
         </div>
       </div>

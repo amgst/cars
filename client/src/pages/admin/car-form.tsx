@@ -212,8 +212,13 @@ export default function CarForm() {
 
   const { data: car, isLoading, error } = useQuery<Car>({
     queryKey: ["carById", id],
-    enabled: isEdit,
-    queryFn: () => getCarByIdFirebase(id!),
+    enabled: isEdit && !!id,
+    queryFn: () => {
+      if (!id) {
+        throw new Error("Car ID is required");
+      }
+      return getCarByIdFirebase(id);
+    },
   });
 
   const form = useForm<InsertCar>({

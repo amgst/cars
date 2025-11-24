@@ -44,18 +44,24 @@ export default function CarsList() {
     mutationFn: (id: string) => deleteCarFirebase(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cars"] });
+      queryClient.invalidateQueries({ queryKey: ["carById"] });
       toast({
         title: "Success",
         description: "Car deleted successfully",
       });
       setDeleteId(null);
     },
-    onError: () => {
+    onError: (error: unknown) => {
+      console.error("Delete mutation error:", error);
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : "Failed to delete car";
       toast({
         title: "Error",
-        description: "Failed to delete car",
+        description: errorMessage,
         variant: "destructive",
       });
+      setDeleteId(null);
     },
   });
 
@@ -116,15 +122,28 @@ export default function CarsList() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {cars.map((car) => (
+                {cars.map((car) => {
+                  if (!car.id) {
+                    console.warn("Car missing ID:", car);
+                  }
+                  return (
                   <TableRow 
-                    key={car.id} 
-                    data-testid={`row-car-${car.id}`}
+                    key={car.id || car.slug} 
+                    data-testid={`row-car-${car.id || car.slug}`}
                     className="cursor-pointer"
                     onClick={(e) => {
                       // Don't navigate if clicking on action buttons
                       const target = e.target as HTMLElement;
                       if (target.closest('button') || target.closest('a')) {
+                        return;
+                      }
+                      if (!car.id) {
+                        console.error("Cannot edit car without ID:", car);
+                        toast({
+                          title: "Error",
+                          description: "Car ID is missing. Please refresh the page.",
+                          variant: "destructive",
+                        });
                         return;
                       }
                       setLocation(`/admin/cars/${car.id}/edit`);
@@ -156,23 +175,50 @@ export default function CarsList() {
                             <Eye className="h-4 w-4" />
                           </Button>
                         </Link>
-                        <Link href={`/admin/cars/${car.id}/edit`}>
-                          <Button size="icon" variant="ghost" data-testid={`button-edit-${car.id}`}>
+                        <Link href={car.id ? `/admin/cars/${car.id}/edit` : '#'}>
+                          <Button 
+                            size="icon" 
+                            variant="ghost" 
+                            data-testid={`button-edit-${car.id || car.slug}`}
+                            disabled={!car.id}
+                            onClick={(e) => {
+                              if (!car.id) {
+                                e.preventDefault();
+                                toast({
+                                  title: "Error",
+                                  description: "Car ID is missing. Please refresh the page.",
+                                  variant: "destructive",
+                                });
+                              }
+                            }}
+                          >
                             <Pencil className="h-4 w-4" />
                           </Button>
                         </Link>
                         <Button
                           size="icon"
                           variant="ghost"
-                          onClick={() => setDeleteId(car.id)}
-                          data-testid={`button-delete-${car.id}`}
+                          onClick={() => {
+                            if (!car.id) {
+                              toast({
+                                title: "Error",
+                                description: "Car ID is missing. Cannot delete.",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+                            setDeleteId(car.id);
+                          }}
+                          disabled={!car.id}
+                          data-testid={`button-delete-${car.id || car.slug}`}
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
@@ -191,7 +237,18 @@ export default function CarsList() {
           <AlertDialogFooter>
             <AlertDialogCancel data-testid="button-cancel-delete">Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deleteId && deleteMutation.mutate(deleteId)}
+              onClick={() => {
+                if (!deleteId) {
+                  toast({
+                    title: "Error",
+                    description: "Car ID is missing. Cannot delete.",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                console.log("Deleting car with ID:", deleteId);
+                deleteMutation.mutate(deleteId);
+              }}
               className="bg-destructive text-destructive-foreground"
               data-testid="button-confirm-delete"
             >

@@ -7,6 +7,8 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
+  doc,
+  getDoc,
 } from "firebase/firestore";
 import type { Car, InsertCar } from "@shared/schema";
 
@@ -29,9 +31,10 @@ export async function getAllCarsFirebase(): Promise<Car[]> {
 
   snap.forEach((docSnap) => {
     const data = docSnap.data() as Car;
-    // Ensure images is always an array
+    // Ensure images is always an array and id is set
     cars.push({
       ...data,
+      id: data.id || docSnap.id, // Use document ID if id field is missing
       images: ensureArray(data.images as any),
     });
   });
@@ -55,16 +58,45 @@ export async function getCarBySlugFirebase(slug: string): Promise<Car | undefine
 }
 
 export async function getCarByIdFirebase(id: string): Promise<Car | undefined> {
+  if (!id) {
+    console.error("getCarByIdFirebase: id is required");
+    return undefined;
+  }
+
+  console.log("getCarByIdFirebase: Searching for car with id:", id);
+  
   const q = query(
     collection(db, CARS_COLLECTION),
     where("id", "==", id),
   );
   const snap = await getDocs(q);
-  if (snap.empty) return undefined;
+  
+  if (snap.empty) {
+    console.warn("getCarByIdFirebase: No car found with id:", id);
+    // Try using the id as document ID as fallback
+    try {
+      const docRef = doc(collection(db, CARS_COLLECTION), id);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data() as Car;
+        console.log("getCarByIdFirebase: Found car using document ID");
+        return {
+          ...data,
+          id: data.id || docSnap.id,
+          images: ensureArray(data.images as any),
+        };
+      }
+    } catch (err) {
+      console.error("getCarByIdFirebase: Error trying document ID lookup:", err);
+    }
+    return undefined;
+  }
 
   const data = snap.docs[0].data() as Car;
+  console.log("getCarByIdFirebase: Found car:", data.name);
   return {
     ...data,
+    id: data.id || snap.docs[0].id, // Ensure id is set
     images: ensureArray(data.images as any),
   };
 }
@@ -107,17 +139,56 @@ export async function updateCarFirebase(id: string, input: InsertCar): Promise<C
 }
 
 export async function deleteCarFirebase(id: string): Promise<boolean> {
-  const q = query(
-    collection(db, CARS_COLLECTION),
-    where("id", "==", id),
-  );
-  const snap = await getDocs(q);
-  if (snap.empty) return false;
+  if (!id) {
+    console.error("deleteCarFirebase: id is required");
+    throw new Error("Car ID is required for deletion");
+  }
 
-  const docRef = snap.docs[0].ref;
-  await deleteDoc(docRef);
-  return true;
+  console.log("deleteCarFirebase: Attempting to delete car with id:", id);
+
+  try {
+    // First, try to find by the id field
+    const q = query(
+      collection(db, CARS_COLLECTION),
+      where("id", "==", id),
+    );
+    const snap = await getDocs(q);
+    
+    if (!snap.empty) {
+      const docRef = snap.docs[0].ref;
+      console.log("deleteCarFirebase: Found car by id field, deleting document:", docRef.id);
+      await deleteDoc(docRef);
+      console.log("deleteCarFirebase: Car deleted successfully");
+      return true;
+    }
+
+    // If not found by id field, try using the id as document ID
+    console.log("deleteCarFirebase: Car not found by id field, trying document ID");
+    try {
+      const docRef = doc(collection(db, CARS_COLLECTION), id);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        console.log("deleteCarFirebase: Found car by document ID, deleting");
+        await deleteDoc(docRef);
+        console.log("deleteCarFirebase: Car deleted successfully");
+        return true;
+      }
+    } catch (docIdError) {
+      console.error("deleteCarFirebase: Error trying document ID lookup:", docIdError);
+    }
+
+    console.warn("deleteCarFirebase: Car not found with id:", id);
+    throw new Error(`Car with ID "${id}" not found`);
+  } catch (error) {
+    console.error("deleteCarFirebase: Error deleting car:", error);
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error("Failed to delete car");
+  }
 }
+
+
 
 
 

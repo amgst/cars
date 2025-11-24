@@ -114,11 +114,47 @@ export function BookingForm({
   const onSubmit = async (data: InsertBooking) => {
     setIsSubmitting(true);
     try {
+      // Validate dates
+      if (!data.startDate || !data.endDate) {
+        toast({
+          title: "Validation Error",
+          description: "Please select both pick-up and return dates.",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      const start = new Date(data.startDate);
+      const end = new Date(data.endDate);
+      
+      if (end <= start) {
+        toast({
+          title: "Validation Error",
+          description: "Return date must be after pick-up date.",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (totalPrice <= 0) {
+        toast({
+          title: "Validation Error",
+          description: "Please select valid rental dates to calculate the price.",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      console.log("Submitting booking:", { ...data, totalPrice });
       await createBookingFirebase({
         ...data,
         totalPrice,
       });
       await queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      await queryClient.invalidateQueries({ queryKey: ["bookingsByCar", carId] });
       
       toast({
         title: "Booking Submitted!",
@@ -128,9 +164,13 @@ export function BookingForm({
       form.reset();
       onOpenChange(false);
     } catch (error) {
+      console.error("Booking submission error:", error);
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : "There was an error submitting your booking. Please try again.";
       toast({
         title: "Booking Failed",
-        description: "There was an error submitting your booking. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
