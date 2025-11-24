@@ -33,9 +33,9 @@ export function SEO({ title, description, image, type = "website", noindex = fal
     if (!settings) return;
 
     // Update document title
-    const pageTitle = title || settings.websiteName || "Premium Car Rentals Australia";
-    const fullTitle = title ? `${title} | ${settings.websiteName || "Premium Car Rentals Australia"}` : `${settings.websiteName || "Premium Car Rentals Australia"} - Luxury Vehicle Hire`;
-    document.title = fullTitle;
+    const siteName = settings.websiteName || "Premium Car Rentals Australia";
+    const pageTitle = title ? `${siteName} | ${title}` : siteName;
+    document.title = pageTitle;
 
     // Update meta description
     const metaDesc = description || settings.metaDescription || settings.description || "";
@@ -69,7 +69,7 @@ export function SEO({ title, description, image, type = "website", noindex = fal
     canonical.href = canonicalUrl;
 
     // Update Open Graph tags
-    const ogTitle = title || settings.websiteName || "Premium Car Rentals Australia";
+    const ogTitle = pageTitle;
     const ogDesc = description || settings.metaDescription || settings.description || "";
     const defaultOgImage =
       getAbsoluteUrl(settings.logo) ||
