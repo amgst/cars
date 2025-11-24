@@ -12,8 +12,12 @@ import {
   CheckCircle2,
   ArrowRight,
 } from "lucide-react";
+import { useWebsiteSettings } from "@/hooks/use-website-settings";
 
 export default function About() {
+  const { settings } = useWebsiteSettings();
+  const websiteName = settings?.websiteName || "Premium Car Rentals Australia";
+  const companyName = settings?.companyName || websiteName;
   const values = [
     {
       icon: Shield,
@@ -50,7 +54,7 @@ export default function About() {
       <section className="bg-card border-b">
         <div className="max-w-7xl mx-auto px-6 py-16 md:py-24">
           <div className="max-w-3xl">
-            <h1 className="text-5xl md:text-6xl font-bold mb-6">About Tokyo Drive</h1>
+            <h1 className="text-5xl md:text-6xl font-bold mb-6">About {companyName}</h1>
             <p className="text-xl text-muted-foreground leading-relaxed">
               We are a premium car rental service dedicated to providing exceptional vehicles and 
               outstanding customer experiences. Since our founding, we've been committed to making 
@@ -67,7 +71,7 @@ export default function About() {
             <div>
               <h2 className="text-4xl font-bold mb-6">Our Mission</h2>
               <p className="text-lg text-muted-foreground mb-4 leading-relaxed">
-                At Tokyo Drive, our mission is to provide premium car rental services that exceed 
+                At {companyName}, our mission is to provide premium car rental services that exceed 
                 expectations. We believe that every journey should be comfortable, safe, and memorable.
               </p>
               <p className="text-lg text-muted-foreground mb-6 leading-relaxed">
@@ -148,18 +152,24 @@ export default function About() {
             Have questions? We'd love to hear from you. Reach out to our team for any inquiries.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-            <div className="flex items-center justify-center gap-3">
-              <Phone className="h-5 w-5 text-primary" />
-              <span className="text-muted-foreground">+81 3-1234-5678</span>
-            </div>
-            <div className="flex items-center justify-center gap-3">
-              <Mail className="h-5 w-5 text-primary" />
-              <span className="text-muted-foreground">info@tokyodrive.com</span>
-            </div>
-            <div className="flex items-center justify-center gap-3">
-              <MapPin className="h-5 w-5 text-primary" />
-              <span className="text-muted-foreground">Tokyo, Japan</span>
-            </div>
+            {settings?.phone && (
+              <div className="flex items-center justify-center gap-3">
+                <Phone className="h-5 w-5 text-primary" />
+                <span className="text-muted-foreground">{settings.phone}</span>
+              </div>
+            )}
+            {settings?.email && (
+              <div className="flex items-center justify-center gap-3">
+                <Mail className="h-5 w-5 text-primary" />
+                <span className="text-muted-foreground">{settings.email}</span>
+              </div>
+            )}
+            {settings?.address && (
+              <div className="flex items-center justify-center gap-3">
+                <MapPin className="h-5 w-5 text-primary" />
+                <span className="text-muted-foreground">{settings.address}</span>
+              </div>
+            )}
           </div>
           <Link href="/contact">
             <Button size="lg" className="px-8">

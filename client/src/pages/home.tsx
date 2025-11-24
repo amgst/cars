@@ -11,6 +11,7 @@ import heroImage from "@assets/generated_images/Hero_banner_luxury_car_0ff28a2c.
 import { getAllCarsFirebase } from "@/lib/carsFirebase";
 import { getOptimizedImageUrl, getThumbnailUrl } from "@/lib/imageUtils";
 import { SEO } from "@/components/seo";
+import { useWebsiteSettings } from "@/hooks/use-website-settings";
 import {
   Users,
   Car as CarIcon,
@@ -31,6 +32,8 @@ export default function Home() {
     queryKey: ["cars"],
     queryFn: getAllCarsFirebase,
   });
+  const { settings } = useWebsiteSettings();
+  const websiteName = settings?.websiteName || "Premium Car Rentals Australia";
 
   const featuredCars = cars?.slice(0, 3) || [];
   const popularTrips = [
@@ -361,7 +364,7 @@ export default function Home() {
                 </div>
               </div>
               <p className="text-muted-foreground italic">
-                "Outstanding service! The Tesla Model 3 was in perfect condition, and the booking process was seamless. Tokyo Drive made my business trip incredibly convenient."
+                "Outstanding service! The Tesla Model 3 was in perfect condition, and the booking process was seamless. {websiteName} made my business trip incredibly convenient."
               </p>
             </Card>
 

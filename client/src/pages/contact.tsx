@@ -13,9 +13,11 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useWebsiteSettings } from "@/hooks/use-website-settings";
 
 export default function Contact() {
   const { toast } = useToast();
+  const { settings } = useWebsiteSettings();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -50,21 +52,21 @@ export default function Contact() {
   };
 
   const contactInfo = [
-    {
+    ...(settings?.address ? [{
       icon: MapPin,
       title: "Address",
-      details: ["123 Premium Avenue", "Tokyo, Japan 100-0001"],
-    },
-    {
+      details: [settings.address],
+    }] : []),
+    ...(settings?.phone ? [{
       icon: Phone,
       title: "Phone",
-      details: ["+81 3-1234-5678", "Mon-Fri: 9:00 AM - 6:00 PM"],
-    },
-    {
+      details: [settings.phone, "Mon-Fri: 9:00 AM - 6:00 PM"],
+    }] : []),
+    ...(settings?.email ? [{
       icon: Mail,
       title: "Email",
-      details: ["info@tokyodrive.com", "support@tokyodrive.com"],
-    },
+      details: [settings.email],
+    }] : []),
     {
       icon: Clock,
       title: "Business Hours",
